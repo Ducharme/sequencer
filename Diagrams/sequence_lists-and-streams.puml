@@ -1,0 +1,47 @@
+@startuml
+participant AdminService as  as
+participant ProcessorService as ps
+participant SequencerService as ss
+database    Redis            as redis
+collections PendingList      as pending_lst
+collections ProcessingList   as processing_lst
+queue       ProcessedStream  as processed_str
+queue       SequencedStream  as sequenced_str
+collections SequencedList    as sequenced_lst
+
+
+== Admin Tool ==
+
+as -> pending_lst : ListLeftPushAsync & PublishAsync (PendingNewMessagesChannel/NewMessages)
+
+== Processing ==
+
+ps -> redis : SubscribeAsync (PendingNewMessagesChannel/NewMessages)
+
+group Complete the processing (ScriptEvaluateAsync)
+    ps -> pending_lst : RPOP
+    ps -> processing_lst : LPUSH
+end
+
+group CanMessageBeProcessed (list contains value check)
+    ps -> sequenced_lst : ListGetByIndexAsync
+end
+group Complete the processing (ScriptEvaluateAsync)
+    ps -> processed_str : XADD
+    ps -> processing_lst : LREM
+    ps -> redis : PUBLISH ProcessedStreamChannel/ProcessedMessages
+end
+
+== Sequencing==
+
+ss -> redis : SubscribeAsync (ProcessedStreamChannel/ProcessedMessages)
+ss -> redis : SubscribeAsync (SequencedStreamChannel/HighestEntryIdAndSequence)
+ss -> processed_str : StreamReadAsync
+group Complete the sequencing (transaction)
+    ss -> sequenced_str : StreamAddAsync
+    ss -> sequenced_lst : ListLeftPushAsync
+    ss -> processed_str : StreamDeleteAsync
+    ss -> redis : PublishAsync (SequencedStreamChannel/HighestEntryIdAndSequence)
+end
+
+@enduml

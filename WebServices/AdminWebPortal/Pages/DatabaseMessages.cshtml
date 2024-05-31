@@ -1,0 +1,44 @@
+@page "/database/messages"
+@model WebAdminPortal.Pages.DatabaseMessagesModel
+
+@{
+    ViewData["Title"] = "Database Messages";
+}
+
+<h1>Showing messages for @Model.Name</h1>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Sequence</th>
+            <th>Payload</th>
+            <th>Delay</th>
+            <th>CreatedAt</th>
+            <th>ProcessingAt</th>
+            <th>ProcessedAt</th>
+            <th>SequencingAt</th>
+            <th>SavedAt</th>
+            <th>SequencedAt</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Messages != null)
+        {
+            @foreach (var mm in Model.Messages)
+            {
+                <tr>
+                    <td>@mm.Name</td>
+                    <td>@mm.Sequence</td>
+                    <td>@mm.Payload</td>
+                    <td>@mm.Delay</td>
+                    <td>@mm.CreatedAt</td>
+                    <td>@mm.ProcessingAt</td>
+                    <td>@mm.ProcessedAt</td>
+                    <td>@mm.SequencingAt</td>
+                    <td>@mm.SavedAt</td>
+                    <td>@mm.SequencedAt</td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>

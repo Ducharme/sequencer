@@ -1,0 +1,27 @@
+#!/bin/sh
+
+if [ -n "$RUN_ENV_FILE" ]; then
+    echo "RUN_ENV_FILE is set, using ENV_FILE=$RUN_ENV_FILE"
+    ENV_FILE=$RUN_ENV_FILE
+elif [ -n "$1" ]; then
+    echo "RUN_ENV_FILE is not set, using ENV_FILE=$1"
+    ENV_FILE=$1
+else
+    echo "RUN_ENV_FILE and $1 are not set, exiting"
+    exit 3
+fi
+
+export GROUP_NAME=$(grep GROUP_NAME $ENV_FILE | cut -d '=' -f2)
+
+export PGSQL_ENDPOINT=$(grep PGSQL_ENDPOINT $ENV_FILE | cut -d '=' -f2)
+
+export REDIS_ENDPOINT=$(grep REDIS_ENDPOINT $ENV_FILE | cut -d '=' -f2)
+export REDIS_PORT=$(grep REDIS_PORT $ENV_FILE | cut -d '=' -f2)
+export REDIS_USER=$(grep REDIS_USER $ENV_FILE | cut -d '=' -f2)
+export REDIS_PASSWORD=$(grep REDIS_PASSWORD $ENV_FILE | cut -d '=' -f2)
+export REDIS_SSL_ENABLED=$(grep REDIS_SSL_ENABLED $ENV_FILE | cut -d '=' -f2)
+export REDIS_SSL_PROTOCOLS=$(grep REDIS_SSL_PROTOCOLS $ENV_FILE | cut -d '=' -f2)
+export REDIS_CHANNEL_PREFIX=$(grep REDIS_CHANNEL_PREFIX $ENV_FILE | cut -d '=' -f2)
+export REDIS_USE_COMMAND_MAP=$(grep REDIS_USE_COMMAND_MAP $ENV_FILE | cut -d '=' -f2)
+
+echo GROUP_NAME=$GROUP_NAME, PGSQL_ENDPOINT=$PGSQL_ENDPOINT, REDIS_ENDPOINT=$REDIS_ENDPOINT, REDIS_PORT=$REDIS_PORT, REDIS_USER=$REDIS_USER, REDIS_PASSWORD=*****, REDIS_SSL_ENABLED=$REDIS_SSL_ENABLED, REDIS_SSL_PROTOCOLS=$REDIS_SSL_PROTOCOLS, REDIS_CHANNEL_PREFIX=$REDIS_CHANNEL_PREFIX, REDIS_USE_COMMAND_MAP=$REDIS_USE_COMMAND_MAP

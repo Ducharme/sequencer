@@ -1,0 +1,7 @@
+.tmp/
+Debug/
+Release/
+
+.env.development
+.env.local
+.env.production

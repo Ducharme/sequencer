@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../SharedTypes/CommonTypes/CommonTypes.csproj" />
+    <ProjectReference Include="../../DataAccessLayers/DatabaseAccessLayer/DatabaseAL.csproj" />
+    <ProjectReference Include="../../DataAccessLayers/RedisAccessLayer/RedisAL.csproj" />
+    <PackageReference Include="log4net" Version="2.0.15" />
+    <Content Include="../../.env.production">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="../../.env.development">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="../../.env.local">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <Target Name="CopyConfigFiles" AfterTargets="Build">
+    <Copy SourceFiles="log4net.config" DestinationFolder="$(TargetDir)" />
+  </Target>
+</Project>
