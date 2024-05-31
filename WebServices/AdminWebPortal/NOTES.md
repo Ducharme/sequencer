@@ -2,7 +2,7 @@
 https://learn.microsoft.com/en-us/aspnet/core/getting-started/?view=aspnetcore-8.0&tabs=windows
 dotnet new webapp --name PROJECT_NAME --language "C#"
 
-https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis?view=aspnetcore-8.0    
+https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis?view=aspnetcore-8.0
 dotnet new webapi --name PROJECT_NAME --language "C#"
 dotnet dev-certs https --trust
 dotnet watch run

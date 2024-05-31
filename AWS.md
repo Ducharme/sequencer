@@ -1,10 +1,10 @@
 
 # Setup
 
-One VPC
-One ASG with c6i.xlarge (replace Scripts/sequencer.pem with yours in order to connect)
-One PostgreSQL db.t4g.micro 16.1 (dev)
-One Serverless Redis caches 7.1 with 1,000 ECPUs per second and Maximum data storage of 1 GB
+1. One VPC
+2. One ASG with c6i.xlarge (replace Scripts/sequencer.pem with yours in order to connect)
+3. One PostgreSQL db.t4g.micro 16.1 (dev)
+4. One Serverless Redis caches 7.1 with 1,000 ECPUs per second and Maximum data storage of 1 GB
 
 
 # Run
