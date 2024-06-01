@@ -104,8 +104,6 @@ for service in $processor_services; do
 done
 
 
-. ./recoverDotnetServicesLocally.sh
-
 cd $FOLDER
 
 echo "DONE DISRUPTING!"

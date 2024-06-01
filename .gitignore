@@ -1,6 +1,8 @@
 .tmp/
 Debug/
 Release/
+bin/
+obj/
 
 .env.development
 .env.local

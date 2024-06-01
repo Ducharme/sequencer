@@ -48,3 +48,70 @@ Design and implement a message processing system that is resilient, performant, 
 ## By relaxing the ordering constraint
 1. Remove the Sequencing service to significantly increase performance
 2. Create a Dead Letter Queue when processing fails a few time or encounter specific exceptions
+
+## Important files
+
+Processor Service
+- [Processor.cs](Services/ProcessorService/Processor.cs)
+- [PendingListToProcessedListListener.cs](DataAccessLayers/RedisAccessLayer/Client/PendingListToProcessedListListener.cs)
+
+Sequencer Service
+- [Sequencer.cs](Services/SequencerService/Sequencer.cs)
+- [ProcessedListToSequencedListListener.cs](DataAccessLayers/RedisAccessLayer/Client/ProcessedListToSequencedListListener.cs)
+
+Locks
+- [NativeLock.cs](DataAccessLayers/RedisAccessLayer/Locks/NativeLock.cs) for normal Redis
+- [AtomicCustomLock.cs](DataAccessLayers/RedisAccessLayer/Locks/AtomicCustomLock.cs) for AWS ElastiCache Serverless Redis
+
+## Diagrams
+
+### Architecture
+
+1. The input FIFO queue (Pending List) is where messages are stored and retrieved by the processors
+2. The Processor services (Active-Active) perform parallel processing of messages from the input FIFO queue (can be scaled as needed) then write processed messages to a Processed Stream
+3. The Sequencer services (Active-Standby/Masters-Slave) are responsible for maintaining the original sequence order of the messages. They read messages from the Processed Stream and write them to an output FIFO queue (Sequenced List), ensuring the original sequence order is preserved
+4. Operations on Lists and Streams are follow by the publication of events on channels to avoid many unwanted short pollings requests by services
+5. A database can be used as the system of record for storing processed messages (much slower than saving into Redis so it has been made optional)
+
+![Architecture Diagram](Diagrams/architecture-diagram.png)
+
+### Sequence
+
+This sequence diagram represents the interactions and flow of messages between services and Redis for storage and communication.
+
+*Admin Tool*
+
+1. The AdminService sends messages to the PendingList using the `ListLeftPushAsync` operation
+2. It also publishes a notification to the `PendingNewMessagesChannel/NewMessages` channel using `PublishAsync`
+
+*Processing*
+
+1. The ProcessorService subscribes to the `PendingNewMessagesChannel/NewMessages` channel to receive notifications about new messages
+2. It performs the following steps in the "Complete the processing" group using `ScriptEvaluateAsync`:
+   - Removes the message from the PendingList using `RPOP`
+   - Adds the message to the ProcessingList using `LPUSH`
+3. Before processing a message, it checks if the message can be processed in the "CanMessageBeProcessed" group by retrieving the corresponding value from the SequencedList using `ListGetByIndexAsync`
+4. If the message can be processed, the ProcessorService performs the following steps in the "Complete the processing" group using `ScriptEvaluateAsync`:
+   - Removes the message from the PendingList using `RPOP`
+   - Adds the message to the ProcessingList using `LPUSH`
+   - Processes the message and adds it to the ProcessedStream using `XADD`
+   - Removes the message from the ProcessingList using `LREM`
+   - Publishes a notification to the `ProcessedStreamChannel/ProcessedMessages` channel using `PUBLISH`
+
+*Sequencing*
+
+1. The SequencerService subscribes to two channels:
+   - `ProcessedStreamChannel/ProcessedMessages` to receive notifications about processed messages
+   - `SequencedStreamChannel/HighestEntryIdAndSequence` to receive notifications about the highest sequenced entry ID
+2. It reads the processed messages from the ProcessedStream using `StreamReadAsync`
+3. To maintain the original order, the SequencerService performs the following steps in the "Complete the sequencing" group using a transaction:
+   - Adds the message to the SequencedStream using `StreamAddAsync`
+   - Adds the message to the SequencedList using `ListLeftPushAsync`
+   - Deletes the message from the ProcessedStream using `StreamDeleteAsync`
+   - Publishes the highest entry ID and sequence to the `SequencedStreamChannel/HighestEntryIdAndSequence` channel using `PublishAsync`
+
+![Sequence Diagram](Diagrams/sequence_lists-and-streams.png)
+
+The diagram shows the flow of messages from the AdminService to the PendingList, then to the ProcessorService for processing. The processed messages are added to the ProcessedStream and then sequenced by the SequencerService. The SequencerService maintains the original order of messages and adds them to the SequencedStream and SequencedList.
+
+The use of publish/subscribe channels allows for communication and coordination between the services. The ProcessorService subscribes to the PendingNewMessagesChannel/NewMessages channel to receive notifications about new messages, while the SequencerService subscribes to the ProcessedStreamChannel/ProcessedMessages and SequencedStreamChannel/HighestEntryIdAndSequence channels to receive notifications about processed messages and the highest sequenced entry ID, respectively.

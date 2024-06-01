@@ -9,7 +9,7 @@ BUFFER_WAIT_TIME_SEC=3
 #CONFIG=Debug
 
 NB_MESSAGES=300
-CREATION_DELAY_MS=0
+CREATION_DELAY_MS=50
 PROCESSING_DELAY_MS=500
 export RUN_ENV_FILE=.env.local
 
@@ -94,6 +94,6 @@ while [ "$start" -lt "$end" ]; do
 done
 
 cd $FOLDER
-#sh killDotnetServicesLocally.sh
+sh killDotnetServicesLocally.sh
 
 echo "DONE RUNNING!"
