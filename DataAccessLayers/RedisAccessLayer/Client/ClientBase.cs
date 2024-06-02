@@ -4,12 +4,11 @@ using log4net;
 
 namespace RedisAccessLayer
 {
-    public abstract class ClientBase
+    public abstract class ClientBase: IDisposable
     {
         protected readonly string groupName = string.Empty;
         protected readonly IRedisConnectionManager rcm;
-        protected string ClientName => rcm.Connection.ClientName;
-
+        protected string ClientName => rcm.ClientName;
 
         public long? LastProcessedSequenceId { get; protected set; }
 
@@ -27,6 +26,11 @@ namespace RedisAccessLayer
             var channelPrefix = EnvVarReader.GetString("REDIS_CHANNEL_PREFIX", EnvVarReader.NotFound);
             var prefix = channelPrefix != EnvVarReader.NotFound ? string.Concat("{", channelPrefix, "}:") : string.Empty;
             return prefix + name;
+        }
+
+        public virtual void Dispose()
+        {
+            rcm.Dispose();
         }
     }
 }

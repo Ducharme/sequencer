@@ -1,13 +1,15 @@
+using System.Data.Common;
 using CommonTypes;
 using StackExchange.Redis;
 
 namespace RedisAccessLayer
 {
-    public interface IRedisConnectionManager
+    public interface IRedisConnectionManager : IDisposable
     {
         IConnectionMultiplexer Connection { get; }
         IDatabase Database { get; }
         ISubscriber Subscriber { get; }
+        string ClientName { get; }
         int GetHealthStatus();
         Task<bool> Reconnect();
         void AddSubscription(RedisChannel channel, Action<RedisChannel, RedisValue> handler);

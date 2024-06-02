@@ -76,7 +76,7 @@ namespace RedisAccessLayer
 
             bool? isMaster = null;
             var lastEntries = Array.Empty<string>();
-            var defaultLockTime = syncLock.GetDefaultLockTime();
+            var defaultLockTime = syncLock.LockExpiry;
             var lastMasterAttempt = DateTime.MinValue;
             var releaseLock = false;
             while (listen == 1)
@@ -91,7 +91,7 @@ namespace RedisAccessLayer
                     }
                     else if (isMaster.Value)
                     {
-                        var remainingTime = syncLock.GetRemainingLockTime();
+                        var remainingTime = syncLock.RemainingLockTime;
                         acquired = remainingTime > TimeSpan.Zero;
                         if (remainingTime < TimeSpan.FromMilliseconds(BufferTime))
                         {

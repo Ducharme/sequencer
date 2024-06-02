@@ -28,8 +28,6 @@ group CanMessageBeProcessed (list contains value check)
 end
 
 group Complete the processing (ScriptEvaluateAsync)
-    ps -> pending_lst : RPOP
-    ps -> processing_lst : LPUSH
     ps -> processed_str : XADD
     ps -> processing_lst : LREM
     ps -> redis : PUBLISH ProcessedStreamChannel/ProcessedMessages

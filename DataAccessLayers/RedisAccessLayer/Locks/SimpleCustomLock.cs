@@ -28,7 +28,12 @@ namespace RedisAccessLayer
             if (currentLockValue == lockValue)
             {
                 // Release the lock by deleting the key
-                return await rcm.KeyDeleteAsync(lockKey);
+                var released = await rcm.KeyDeleteAsync(lockKey);
+                if (released)
+                {
+                    lockAcquisitionTime = DateTime.MinValue;
+                }
+                return released;
             }
             return false;
         }
@@ -53,9 +58,10 @@ namespace RedisAccessLayer
             return await rcm.StringGetAsync(lockKey);
         }
 
-        public async void Dispose()
+        public async override void Dispose()
         {
             await ReleaseLock();
+            base.Dispose();
         }
     }
 }

@@ -9,6 +9,7 @@ namespace RedisAccessLayer
         public IConnectionMultiplexer Connection { get; private set; }
         public IDatabase Database { get; private set; }
         public ISubscriber Subscriber { get; private set; }
+        public string ClientName { get; }
 
         public readonly IRedisConfigurationFetcher ConfigurationFetcher;
         public readonly IConnectionMultiplexerWrapper ConnectionMultiplexerWrapper;
@@ -44,6 +45,7 @@ end";
             Connection = cm.Connect(cf.OptionsWrapper);
             Database = Connection.GetDatabase();
             Subscriber = Connection.GetSubscriber();
+            ClientName = Connection.ClientName;
 
             isConnected = Connection.IsConnected;
 

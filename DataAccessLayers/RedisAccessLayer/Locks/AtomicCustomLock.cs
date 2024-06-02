@@ -8,7 +8,7 @@ namespace RedisAccessLayer
         private static readonly ILog logger = LogManager.GetLogger(typeof(AtomicCustomLock));
 
         // Use Lua scripts to ensure atomicity
-        private const string AcquireScript = @"
+        internal const string AcquireScript = @"
         if redis.call('exists', KEYS[1]) == 0 then
             redis.call('set', KEYS[1], ARGV[1], 'PX', ARGV[2])
             return ARGV[3]
@@ -19,7 +19,7 @@ namespace RedisAccessLayer
             return nil
         end";
 
-        private const string ExtendScript = @"
+        internal const string ExtendScript = @"
         if redis.call('get', KEYS[1]) == ARGV[1] then
             redis.call('pexpire', KEYS[1], ARGV[2])
             return ARGV[3]
@@ -27,7 +27,7 @@ namespace RedisAccessLayer
             return nil
         end";
 
-        private const string ReleaseScript = @"
+        internal const string ReleaseScript = @"
         if redis.call('get', KEYS[1]) == ARGV[1] then
             redis.call('del', KEYS[1])
             return ARGV[2]
@@ -59,6 +59,10 @@ namespace RedisAccessLayer
             var rv = new RedisValue[] { lockValue, requestId };
             var result = await rcm.ScriptEvaluateAsync(ReleaseScript, rk, rv);
             var released = !result.IsNull && result.ToString() == requestId;
+            if (released)
+            {
+                lockAcquisitionTime = DateTime.MinValue;
+            }
             //logger.Debug($"ReleaseLock result={result} for lockKey={lockKey} and lockValue={lockValue} (released={released} with lockAcquisitionTime={lockAcquisitionTime}");
             return released;
         }
@@ -83,9 +87,10 @@ namespace RedisAccessLayer
             return await rcm.StringGetAsync(lockKey);
         }
 
-        public async void Dispose()
+        public async override void Dispose()
         {
             await ReleaseLock();
+            base.Dispose();
         }
     }
 }

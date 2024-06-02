@@ -111,4 +111,4 @@ or
 >> You must install or update .NET to run this application.
 >> No frameworks were found.
 ```
-Refer to DOTNET section in INSTALL.md
+Refer to DOTNET section in [INSTALL.md](INSTALL.md)

@@ -32,12 +32,18 @@ namespace RedisAccessLayer
 
         public async Task<bool?> ReleaseLock()
         {
-            return await rcm.LockReleaseAsync(lockKey, lockValue);
+            var released = await rcm.LockReleaseAsync(lockKey, lockValue);
+            if (released)
+            {
+                lockAcquisitionTime = DateTime.MinValue;
+            }
+            return released;
         }
 
-        public async void Dispose()
+        public async override void Dispose()
         {
             await ReleaseLock();
+            base.Dispose();
         }
     }
 }

@@ -88,7 +88,7 @@ namespace AdminService
             await Task.Delay(100);
             for (int i = 0; i < 12; i++)
             {
-                Console.WriteLine($"#{i} Remaining time 1: {cl1.GetRemainingLockTime()}");
+                Console.WriteLine($"#{i} Remaining time 1: {cl1.RemainingLockTime}");
                 aq2 = await cl2.AcquireLock();
                 Console.WriteLine($"#{i} Acquire value 2: {aq2}");
                 await Task.Delay(100);

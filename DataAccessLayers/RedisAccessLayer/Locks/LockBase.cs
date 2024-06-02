@@ -20,28 +20,10 @@ namespace RedisAccessLayer
             lockExpiry = DefaultLockExpiry;
         }
 
-        public TimeSpan GetRemainingLockTime()
-        {
-            return lockAcquisitionTime.Add(lockExpiry) - DateTime.UtcNow;
-        }
-
-        public TimeSpan GetDefaultLockTime()
-        {
-            return DefaultLockExpiry;
-        }
-
-        public bool IsLockAcquired
-        {
-            get
-            {
-                if (lockAcquisitionTime == DateTime.MinValue)
-                {
-                    return false;
-                }
-
-                var remainingTime = GetRemainingLockTime();
-                return remainingTime > TimeSpan.Zero;
-            }
-        }
+        public string LockKey { get { return lockKey; } }
+        public string LockValue { get { return lockValue; } }
+        public TimeSpan LockExpiry { get { return lockExpiry; } }
+        public TimeSpan RemainingLockTime { get { return lockAcquisitionTime.Add(lockExpiry) - DateTime.UtcNow; } }
+        public bool IsLockAcquired => lockAcquisitionTime != DateTime.MinValue && RemainingLockTime > TimeSpan.Zero;
     }
 }
