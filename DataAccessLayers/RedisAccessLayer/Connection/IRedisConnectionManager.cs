@@ -1,4 +1,3 @@
-using System.Data.Common;
 using CommonTypes;
 using StackExchange.Redis;
 

@@ -31,10 +31,10 @@ namespace RedisAccessLayer.Tests
                 .Returns((string script, RedisKey[] keys, RedisValue[] values, CommandFlags flags) => _redis.ScriptEvaluateAsync(script, keys, values, flags));
 
             // Act
-            bool acquiredLock = await _distributedLock.AcquireLock();
+            bool acquired = await _distributedLock.AcquireLock();
 
             // Assert
-            Assert.True(acquiredLock);
+            Assert.True(acquired);
         }
 
         [Fact]

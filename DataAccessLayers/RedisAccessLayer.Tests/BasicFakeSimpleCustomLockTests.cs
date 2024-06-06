@@ -24,13 +24,14 @@ namespace RedisAccessLayer.Tests
         public async void AcquireLock_WhenLockAcquired_ReturnsTrue()
         {
             // Arrange
-            _databaseMock.Setup(db => db.StringSetAsync(_distributedLock.LockKey, _distributedLock.LockValue, _distributedLock.LockExpiry, When.NotExists, It.IsAny<CommandFlags>())).ReturnsAsync(true);
+            _databaseMock.Setup(db => db.StringSetAsync(_distributedLock.LockKey, _distributedLock.LockValue, _distributedLock.LockExpiry, When.NotExists, It.IsAny<CommandFlags>()))
+                .Returns((RedisKey key, RedisValue value, TimeSpan? expiry, When when, CommandFlags flags) => _redis.StringSetAsync(key, value, expiry, when, flags));
 
             // Act
-            bool acquiredLock = await _distributedLock.AcquireLock();
+            bool acquired = await _distributedLock.AcquireLock();
 
             // Assert
-            Assert.True(acquiredLock);
+            Assert.True(acquired);
         }
 
         [Fact]

@@ -27,10 +27,10 @@ namespace RedisAccessLayer.Tests
             _databaseMock.Setup(db => db.LockTakeAsync(_distributedLock.LockKey, _distributedLock.LockValue, _distributedLock.LockExpiry, It.IsAny<CommandFlags>())).ReturnsAsync(true);
 
             // Act
-            bool acquiredLock = await _distributedLock.AcquireLock();
+            bool acquired = await _distributedLock.AcquireLock();
 
             // Assert
-            Assert.True(acquiredLock);
+            Assert.True(acquired);
         }
 
         [Fact]

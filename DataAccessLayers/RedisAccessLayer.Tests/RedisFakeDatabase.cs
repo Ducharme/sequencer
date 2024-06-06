@@ -74,42 +74,44 @@ namespace RedisAccessLayer.Tests
                     var requestId = (string?)values[2] ?? throw new ArgumentException("RequestId must be a string");
 
                     var ts = TimeSpan.FromMilliseconds(expiry);
-                    var hasValue = _stringValues.TryGetValue(lockKey, out var tuple);
                     bool success;
-                    if (hasValue)
+                    lock (_stringValues)
                     {
-                        if (tuple == null)
+                        var hasValue = _stringValues.TryGetValue(lockKey, out var tuple);
+                        if (hasValue)
                         {
-                            _stringValues[lockKey] = new Tuple<RedisValue, DateTime>(lockValue, DateTime.UtcNow + ts);
-                            success = true;
-                        }
-                        else
-                        {
-                            var hasExpired = tuple.Item2 < DateTime.UtcNow;
-                            if (hasExpired)
+                            if (tuple == null)
                             {
                                 _stringValues[lockKey] = new Tuple<RedisValue, DateTime>(lockValue, DateTime.UtcNow + ts);
                                 success = true;
                             }
                             else
                             {
-                                if (tuple.Item1 == lockValue)
+                                var hasExpired = tuple.Item2 < DateTime.UtcNow;
+                                if (hasExpired)
                                 {
                                     _stringValues[lockKey] = new Tuple<RedisValue, DateTime>(lockValue, DateTime.UtcNow + ts);
                                     success = true;
                                 }
                                 else
                                 {
-                                    _stringValues.Remove(lockKey);
-                                    success = false;
+                                    if (tuple.Item1 == lockValue)
+                                    {
+                                        _stringValues[lockKey] = new Tuple<RedisValue, DateTime>(lockValue, DateTime.UtcNow + ts);
+                                        success = true;
+                                    }
+                                    else
+                                    {
+                                        success = false;
+                                    }
                                 }
                             }
                         }
-                    }
-                    else
-                    {
-                        _stringValues[lockKey] = new Tuple<RedisValue, DateTime>(lockValue, DateTime.UtcNow + ts);
-                        success = true;
+                        else
+                        {
+                            _stringValues[lockKey] = new Tuple<RedisValue, DateTime>(lockValue, DateTime.UtcNow + ts);
+                            success = true;
+                        }
                     }
                     return Task.FromResult(success ? RedisResult.Create(requestId, ResultType.SimpleString) : RedisResult.Create(RedisValue.Null));
                 }
@@ -124,40 +126,43 @@ namespace RedisAccessLayer.Tests
                     var requestId = (string?)values[2] ?? throw new ArgumentException("RequestId must be a string");
 
                     var ts = TimeSpan.FromMilliseconds(expiry);
-                    var hasValue = _stringValues.TryGetValue(lockKey, out var tuple);
                     bool success;
-                    if (hasValue)
+                    lock (_stringValues)
                     {
-                        if (tuple == null)
+                        var hasValue = _stringValues.TryGetValue(lockKey, out var tuple);
+                        if (hasValue)
                         {
-                            _stringValues.Remove(lockKey);
-                            success = false;
-                        }
-                        else
-                        {
-                            var hasExpired = tuple.Item2 < DateTime.UtcNow;
-                            if (hasExpired)
+                            if (tuple == null)
                             {
                                 _stringValues.Remove(lockKey);
                                 success = false;
                             }
                             else
                             {
-                                if (tuple.Item1 == lockValue)
+                                var hasExpired = tuple.Item2 < DateTime.UtcNow;
+                                if (hasExpired)
                                 {
-                                    _stringValues[lockKey] = new Tuple<RedisValue, DateTime>(lockValue, DateTime.UtcNow + ts);
-                                    success = true;
+                                    _stringValues.Remove(lockKey);
+                                    success = false;
                                 }
                                 else
                                 {
-                                    success = false;
+                                    if (tuple.Item1 == lockValue)
+                                    {
+                                        _stringValues[lockKey] = new Tuple<RedisValue, DateTime>(lockValue, DateTime.UtcNow + ts);
+                                        success = true;
+                                    }
+                                    else
+                                    {
+                                        success = false;
+                                    }
                                 }
                             }
                         }
-                    }
-                    else
-                    {
-                        success = false;
+                        else
+                        {
+                            success = false;
+                        }
                     }
                     return Task.FromResult(success ? RedisResult.Create(requestId, ResultType.SimpleString) : RedisResult.Create(RedisValue.Null));
                 }
@@ -171,39 +176,42 @@ namespace RedisAccessLayer.Tests
                     var lockValue = (string?)values[0] ?? throw new ArgumentException("Lock value must be a string");
                     var requestId = (string?)values[1] ?? throw new ArgumentException("RequestId value must be a string");
                     
-                    var hasValue = _stringValues.TryGetValue(lockKey, out var tuple);
                     bool success;
-                    if (hasValue)
+                    lock (_stringValues)
                     {
-                        if (tuple == null)
+                        var hasValue = _stringValues.TryGetValue(lockKey, out var tuple);
+                        if (hasValue)
                         {
-                            _stringValues.Remove(lockKey);
-                            success = false;
-                        }
-                        else
-                        {
-                            var hasExpired = tuple.Item2 < DateTime.UtcNow;
-                            if (hasExpired)
+                            if (tuple == null)
                             {
                                 _stringValues.Remove(lockKey);
                                 success = false;
                             }
                             else
                             {
-                                if (tuple.Item1 == lockValue)
+                                var hasExpired = tuple.Item2 < DateTime.UtcNow;
+                                if (hasExpired)
                                 {
-                                    success = _stringValues.Remove(lockKey);;
+                                    _stringValues.Remove(lockKey);
+                                    success = false;
                                 }
                                 else
                                 {
-                                    success = false;
+                                    if (tuple.Item1 == lockValue)
+                                    {
+                                        success = _stringValues.Remove(lockKey);
+                                    }
+                                    else
+                                    {
+                                        success = false;
+                                    }
                                 }
                             }
                         }
-                    }
-                    else
-                    {
-                        success = false;
+                        else
+                        {
+                            success = false;
+                        }
                     }
                     return Task.FromResult(success ? RedisResult.Create(requestId, ResultType.SimpleString) : RedisResult.Create(RedisValue.Null));
                 }
@@ -281,10 +289,28 @@ namespace RedisAccessLayer.Tests
             var hasValue = _stringValues.TryGetValue(key, out var tuple);
             if (hasValue)
             {
+                if (tuple == null)
+                {
+                    _stringValues.Remove(key);
+                    hasValue = false;
+                }
+                else
+                {
+                    var hasExpired = tuple.Item2 < DateTime.UtcNow;
+                    if (hasExpired)
+                    {
+                        _stringValues.Remove(key);
+                        hasValue = false;
+                    }
+                }
+            }
+            
+            if (hasValue)
+            {
                 if (when == When.Exists)
                 {
-                     _stringValues[key] = new Tuple<RedisValue, DateTime>(value, expiry.HasValue ? DateTime.UtcNow + expiry.Value : DateTime.MaxValue);
-                     return Task.FromResult(true);
+                    _stringValues[key] = new Tuple<RedisValue, DateTime>(value, expiry.HasValue ? DateTime.UtcNow + expiry.Value : DateTime.MaxValue);
+                    return Task.FromResult(true);
                 }
                 else
                 {

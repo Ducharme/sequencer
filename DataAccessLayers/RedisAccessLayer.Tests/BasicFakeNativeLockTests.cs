@@ -27,12 +27,11 @@ namespace RedisAccessLayer.Tests
             _databaseMock.Setup(db => db.LockTakeAsync(_distributedLock.LockKey, _distributedLock.LockValue, _distributedLock.LockExpiry, It.IsAny<CommandFlags>()))
                 .Returns((RedisKey key, RedisValue value, TimeSpan expiry, CommandFlags flags) => _redis.LockTakeAsync(key, value, expiry));
 
-
             // Act
-            bool acquiredLock = await _distributedLock.AcquireLock();
+            bool acquired = await _distributedLock.AcquireLock();
 
             // Assert
-            Assert.True(acquiredLock);
+            Assert.True(acquired);
         }
 
         [Fact]
@@ -41,7 +40,6 @@ namespace RedisAccessLayer.Tests
             // Arrange
             _databaseMock.Setup(db => db.LockTakeAsync(_distributedLock.LockKey, _distributedLock.LockValue, _distributedLock.LockExpiry, It.IsAny<CommandFlags>()))
                 .Returns((RedisKey key, RedisValue value, TimeSpan expiry, CommandFlags flags) => _redis.LockTakeAsync(key, value, expiry));
-
             var ms = _distributedLock.LockExpiry.TotalMilliseconds / 2;
 
             // Act
@@ -61,11 +59,10 @@ namespace RedisAccessLayer.Tests
             _databaseMock.Setup(db => db.LockTakeAsync(_distributedLock.LockKey, _distributedLock.LockValue, _distributedLock.LockExpiry, It.IsAny<CommandFlags>()))
                 .Returns((RedisKey key, RedisValue value, TimeSpan expiry, CommandFlags flags) => _redis.LockTakeAsync(key, value, expiry));
             var ms = _distributedLock.LockExpiry.TotalMilliseconds / 2 * 3;
-            var wait = TimeSpan.FromMilliseconds(ms);
 
             // Act
             var acquired = await _distributedLock.AcquireLock();
-            await Task.Delay(wait);
+            await Task.Delay(TimeSpan.FromMilliseconds(ms));
             bool isLockAcquired = _distributedLock.IsLockAcquired;
 
             // Assert
@@ -89,6 +86,26 @@ namespace RedisAccessLayer.Tests
             // Assert
             Assert.True(acquired);
             Assert.True(extended);
+        }
+
+        [Fact]
+        public async void ExtendLock_WhenLockExpired_ReturnsFalse()
+        {
+            // Arrange
+            _databaseMock.Setup(db => db.LockTakeAsync(_distributedLock.LockKey, _distributedLock.LockValue, _distributedLock.LockExpiry, It.IsAny<CommandFlags>()))
+                .Returns((RedisKey key, RedisValue value, TimeSpan expiry, CommandFlags flags) => _redis.LockTakeAsync(key, value, expiry));
+            _databaseMock.Setup(db => db.LockExtendAsync(_distributedLock.LockKey, _distributedLock.LockValue, _distributedLock.LockExpiry, It.IsAny<CommandFlags>()))
+                .Returns((RedisKey key, RedisValue value, TimeSpan expiry, CommandFlags flags) => _redis.LockExtendAsync(key, value, expiry));
+            var ms = _distributedLock.LockExpiry.TotalMilliseconds / 2 * 3;
+
+            // Act
+            var acquired = await _distributedLock.AcquireLock();
+            await Task.Delay(TimeSpan.FromMilliseconds(ms));
+            bool extended = await _distributedLock.ExtendLock(_distributedLock.LockExpiry);
+
+            // Assert
+            Assert.True(acquired);
+            Assert.False(extended);
         }
 
         [Fact]
