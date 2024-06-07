@@ -21,6 +21,7 @@ namespace RedisAccessLayer.Tests
         internal void Dispose()
         {
             (_distributedLock1 as IDisposable)?.Dispose();
+            (_distributedLock2 as IDisposable)?.Dispose();
         }
 
         [Fact]

@@ -57,9 +57,11 @@ namespace RedisAccessLayer.Tests
 
         public Task<bool> KeyDeleteAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
-            // Mock implementation for key delete
-            var deleted = _stringValues.Remove(key) || _listValues.Remove(key) || _streamValues.Remove(key);
-            return Task.FromResult(deleted);
+            lock(_stringValues)
+            {
+                var deleted = _stringValues.Remove(key) || _listValues.Remove(key) || _streamValues.Remove(key);
+                return Task.FromResult(deleted);
+            }
         }
 
         public Task<RedisResult> ScriptEvaluateAsync(string script, RedisKey[]? keys = null, RedisValue[]? values = null, CommandFlags flags = CommandFlags.None)
@@ -228,24 +230,30 @@ namespace RedisAccessLayer.Tests
         public Task<long> ListRemoveAsync(RedisKey key, RedisValue value, long count = 0, CommandFlags flags = CommandFlags.None)
         {
             // Mock implementation for list remove
-            if (_listValues.TryGetValue(key, out var list))
+            lock(_listValues)
             {
-                var removedCount = list.RemoveAll(v => v == value);
-                return Task.FromResult((long)removedCount);
+                if (_listValues.TryGetValue(key, out var list))
+                {
+                    var removedCount = list.RemoveAll(v => v == value);
+                    return Task.FromResult((long)removedCount);
+                }
+                return Task.FromResult(0L);
             }
-            return Task.FromResult(0L);
         }
 
         public Task<RedisValue> ListRightPopAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
             // Mock implementation for list right pop
-            if (_listValues.TryGetValue(key, out var list) && list.Count > 0)
+            lock(_listValues)
             {
-                var value = list[list.Count - 1];
-                list.RemoveAt(list.Count - 1);
-                return Task.FromResult(value);
+                if (_listValues.TryGetValue(key, out var list) && list.Count > 0)
+                {
+                    var value = list[list.Count - 1];
+                    list.RemoveAt(list.Count - 1);
+                    return Task.FromResult(value);
+                }
+                return Task.FromResult(RedisValue.Null);
             }
-            return Task.FromResult(RedisValue.Null);
         }
 
         public Task<bool> KeyExistsAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -286,152 +294,166 @@ namespace RedisAccessLayer.Tests
 
         public Task<bool> StringSetAsync(RedisKey key, RedisValue value, TimeSpan? expiry, When when, CommandFlags flags)
         {
-            var hasValue = _stringValues.TryGetValue(key, out var tuple);
-            if (hasValue)
+            lock (_stringValues)
             {
-                if (tuple == null)
+                var hasValue = _stringValues.TryGetValue(key, out var tuple);
+                if (hasValue)
                 {
-                    _stringValues.Remove(key);
-                    hasValue = false;
-                }
-                else
-                {
-                    var hasExpired = tuple.Item2 < DateTime.UtcNow;
-                    if (hasExpired)
+                    if (tuple == null)
                     {
                         _stringValues.Remove(key);
                         hasValue = false;
                     }
+                    else
+                    {
+                        var hasExpired = tuple.Item2 < DateTime.UtcNow;
+                        if (hasExpired)
+                        {
+                            _stringValues.Remove(key);
+                            hasValue = false;
+                        }
+                    }
                 }
-            }
-            
-            if (hasValue)
-            {
-                if (when == When.Exists)
+                
+                if (hasValue)
                 {
-                    _stringValues[key] = new Tuple<RedisValue, DateTime>(value, expiry.HasValue ? DateTime.UtcNow + expiry.Value : DateTime.MaxValue);
-                    return Task.FromResult(true);
+                    if (when == When.Exists)
+                    {
+                        _stringValues[key] = new Tuple<RedisValue, DateTime>(value, expiry.HasValue ? DateTime.UtcNow + expiry.Value : DateTime.MaxValue);
+                        return Task.FromResult(true);
+                    }
+                    else
+                    {
+                        return Task.FromResult(false);
+                    }
                 }
                 else
                 {
-                    return Task.FromResult(false);
-                }
-            }
-            else
-            {
-                if (when == When.NotExists)
-                {
-                     _stringValues[key] = new Tuple<RedisValue, DateTime>(value, expiry.HasValue ? DateTime.UtcNow + expiry.Value : DateTime.MaxValue);
-                     return Task.FromResult(true);
-                }
-                else
-                {
-                    return Task.FromResult(false);
+                    if (when == When.NotExists)
+                    {
+                        _stringValues[key] = new Tuple<RedisValue, DateTime>(value, expiry.HasValue ? DateTime.UtcNow + expiry.Value : DateTime.MaxValue);
+                        return Task.FromResult(true);
+                    }
+                    else
+                    {
+                        return Task.FromResult(false);
+                    }
                 }
             }
         }
 
         public Task<RedisValue> StringGetAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
-            var hasValue = _stringValues.TryGetValue(key, out var tuple);
-            if (hasValue)
+            lock (_lockValues)
             {
-                if (tuple == null)
+                var hasValue = _stringValues.TryGetValue(key, out var tuple);
+                if (hasValue)
                 {
-                    _stringValues.Remove(key);
-                }
-                else
-                {
-                    var hasExpired = tuple.Item2 < DateTime.UtcNow;
-                    if (hasExpired)
+                    if (tuple == null)
                     {
                         _stringValues.Remove(key);
                     }
                     else
                     {
-                        return Task.FromResult(tuple.Item1);
+                        var hasExpired = tuple.Item2 < DateTime.UtcNow;
+                        if (hasExpired)
+                        {
+                            _stringValues.Remove(key);
+                        }
+                        else
+                        {
+                            return Task.FromResult(tuple.Item1);
+                        }
                     }
                 }
+                return Task.FromResult(RedisValue.Null);
             }
-            return Task.FromResult(RedisValue.Null);
         }
 
         public Task<bool> LockTakeAsync(RedisKey key, RedisValue value, TimeSpan expiry, CommandFlags flags = CommandFlags.None)
         {
-            if (!_lockValues.ContainsKey(key))
+            lock (_lockValues)
             {
-                _lockValues[key] = new Tuple<RedisValue, DateTime>(value, DateTime.UtcNow + expiry);
-                return Task.FromResult(true);
-            }
-            else
-            {
-                var tuple = _lockValues[key];
-                if (tuple.Item2 < DateTime.UtcNow) // Expired
+                if (!_lockValues.ContainsKey(key))
                 {
                     _lockValues[key] = new Tuple<RedisValue, DateTime>(value, DateTime.UtcNow + expiry);
                     return Task.FromResult(true);
                 }
                 else
                 {
-                    return Task.FromResult(false);
+                    var tuple = _lockValues[key];
+                    if (tuple.Item2 < DateTime.UtcNow) // Expired
+                    {
+                        _lockValues[key] = new Tuple<RedisValue, DateTime>(value, DateTime.UtcNow + expiry);
+                        return Task.FromResult(true);
+                    }
+                    else
+                    {
+                        return Task.FromResult(false);
+                    }
                 }
             }
         }
 
         public Task<bool> LockExtendAsync(RedisKey key, RedisValue value, TimeSpan expiry, CommandFlags flags = CommandFlags.None)
         {
-            if (_lockValues.TryGetValue(key, out var tuple) && tuple.Item1 == value)
+            lock (_lockValues)
             {
-                if (tuple.Item2 < DateTime.UtcNow) // Expired
+                if (_lockValues.TryGetValue(key, out var tuple) && tuple.Item1 == value)
                 {
-                    _lockValues.Remove(key);
-                    return Task.FromResult(false);
+                    if (tuple.Item2 < DateTime.UtcNow) // Expired
+                    {
+                        _lockValues.Remove(key);
+                        return Task.FromResult(false);
+                    }
+                    else
+                    {
+                        _lockValues[key] = new Tuple<RedisValue, DateTime>(value, DateTime.UtcNow + expiry);
+                        return Task.FromResult(true);
+                    }
                 }
-                else
-                {
-                    _lockValues[key] = new Tuple<RedisValue, DateTime>(value, DateTime.UtcNow + expiry);
-                    return Task.FromResult(true);
-                }
+                return Task.FromResult(false);
             }
-            return Task.FromResult(false);
         }
 
         public Task<RedisValue> LockQueryAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
-            if (_lockValues.TryGetValue(key, out var tuple))
+            lock (_lockValues)
             {
-                //Console.WriteLine("LockQueryAsync: Key found");
-                if (tuple.Item2 < DateTime.UtcNow) // Expired
+                if (_lockValues.TryGetValue(key, out var tuple))
                 {
-                    //Console.WriteLine("LockQueryAsync: Expired");
-                    _lockValues.Remove(key);
-                    return Task.FromResult(RedisValue.Null);
+                    if (tuple.Item2 < DateTime.UtcNow) // Expired
+                    {
+                        _lockValues.Remove(key);
+                        return Task.FromResult(RedisValue.Null);
+                    }
+                    else
+                    {
+                        return Task.FromResult(tuple.Item1);
+                    }
                 }
-                else
-                {
-                    //Console.WriteLine("LockQueryAsync: Valid");
-                    return Task.FromResult(tuple.Item1);
-                }
+                return Task.FromResult(RedisValue.Null);
             }
-            //Console.WriteLine("LockQueryAsync: Key not found");
-            return Task.FromResult(RedisValue.Null);
         }
 
         public Task<bool> LockReleaseAsync(RedisKey key, RedisValue value, CommandFlags flags = CommandFlags.None)
         {
-            if (_lockValues.TryGetValue(key, out var tuple) && tuple.Item1 == value)
+            lock (_lockValues)
             {
-                _lockValues.Remove(key);
-                if (tuple.Item2 < DateTime.UtcNow) // Expired
+                if (_lockValues.TryGetValue(key, out var tuple) && tuple.Item1 == value)
                 {
-                    return Task.FromResult(false);
+                    _lockValues.Remove(key);
+                    if (tuple.Item2 < DateTime.UtcNow) // Expired
+                    {
+                        return Task.FromResult(false);
+                    }
+                    else
+                    {
+                        return Task.FromResult(true);
+                    }
                 }
-                else
-                {
-                    return Task.FromResult(true);
-                }
+                return Task.FromResult(false);
             }
-            return Task.FromResult(false);
         }
     }
 }

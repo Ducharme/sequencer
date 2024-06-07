@@ -113,7 +113,8 @@ namespace RedisAccessLayer.Tests
         public async void GetRemainingLockTime_ReturnsRemainingTime()
         {
             // Arrange
-            _databaseMock.Setup(db => db.StringSetAsync(_distributedLock.LockKey, _distributedLock.LockValue, _distributedLock.LockExpiry, When.NotExists, It.IsAny<CommandFlags>())).ReturnsAsync(true);
+            _databaseMock.Setup(db => db.StringSetAsync(_distributedLock.LockKey, _distributedLock.LockValue, _distributedLock.LockExpiry, When.NotExists, It.IsAny<CommandFlags>()))
+                .Returns((RedisKey key, RedisValue value, TimeSpan? expiry, When when, CommandFlags flags) => _redis.StringSetAsync(key, value, expiry, when, flags));
             var ms = _distributedLock.LockExpiry.TotalMilliseconds / 2;
 
             // Act
@@ -130,9 +131,12 @@ namespace RedisAccessLayer.Tests
         public async void ReleaseLock_ReleasesLock()
         {
             // Arrange
-            _databaseMock.Setup(db => db.StringSetAsync(_distributedLock.LockKey, _distributedLock.LockValue, _distributedLock.LockExpiry, When.NotExists, It.IsAny<CommandFlags>())).ReturnsAsync(true);
-            _databaseMock.Setup(db => db.StringGetAsync(_distributedLock.LockKey, It.IsAny<CommandFlags>())).ReturnsAsync(_distributedLock.LockValue);
-            _databaseMock.Setup(db => db.KeyDeleteAsync(_distributedLock.LockKey, It.IsAny<CommandFlags>())).ReturnsAsync(true);
+            _databaseMock.Setup(db => db.StringSetAsync(_distributedLock.LockKey, _distributedLock.LockValue, _distributedLock.LockExpiry, When.NotExists, It.IsAny<CommandFlags>()))
+                .Returns((RedisKey key, RedisValue value, TimeSpan? expiry, When when, CommandFlags flags) => _redis.StringSetAsync(key, value, expiry, when, flags));
+            _databaseMock.Setup(db => db.StringGetAsync(_distributedLock.LockKey, It.IsAny<CommandFlags>()))
+                .Returns((RedisKey key, CommandFlags flags) => _redis.StringGetAsync(key, flags));
+            _databaseMock.Setup(db => db.KeyDeleteAsync(_distributedLock.LockKey, It.IsAny<CommandFlags>()))
+                .Returns((RedisKey key, CommandFlags flags) => _redis.KeyDeleteAsync(key, flags));
 
             // Act
             var acquired = await _distributedLock.AcquireLock();
