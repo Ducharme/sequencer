@@ -1,9 +1,12 @@
 .tmp/
+.logs/
 Debug/
 Release/
 bin/
 obj/
+Scripts/sequencer.pem
 
 .env.development
 .env.local
 .env.production
+.env.backup

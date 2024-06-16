@@ -21,10 +21,14 @@ dotnet run --project Services/AdminService .env.local
 
 ## Setup database
 
+Get the endpoint with the first command and replace the value for the host in the second command. Values will also be in .env.production file if generated and also in Secrets Manager.
 ```
+aws rds describe-db-cluster-endpoints --db-cluster-identifier sequencer-aurora-cluster --filters "Name=db-cluster-endpoint-type,Values=WRITER" --query 'DBClusterEndpoints[0].Endpoint' --output text
 psql -h sequencer.abcd1234.region.rds.amazonaws.com -U <username> -d sequencer -p 5432
 psql -h localhost -U myuser -d sequencer -p 5432 # <password>
-
+```
+Once connected
+```
 \dt
 SELECT * FROM events;
 
@@ -45,6 +49,12 @@ CREATE TABLE events (
 
 ## Setup Redis
 
+Get the endpoint with the first command and replace the value for the host in the second command. Values will also be in .env.production file if generated and also in Secrets Manager.
+```
+aws elasticache describe-serverless-caches --serverless-cache-name sequencer-redis --query 'ServerlessCaches[0].Endpoint.Address' --output text
+redis-cli -h sequencer-redis-abcd1234.serverless.reg.cache.amazonaws.com -p 6379 --tls
+```
+Once connected
 ```
 KEYS *
 SCAN 0 MATCH * COUNT 100

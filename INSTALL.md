@@ -5,13 +5,13 @@
 
 ```
 sudo apt install postgresql-client-common
-sudo apt install postgresql-client
+sudo apt install -y postgresql-client
 ```
 
 ## Redis client
 
 ```
-sudo apt install redis-tools
+sudo apt install -y redis-tools
 ```
 
 ## Dotnet Core

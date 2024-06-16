@@ -2,7 +2,6 @@
 
 NB_PROCESSORS=10
 NB_SEQUENCERS=3
-ADMIN_WAIT_TIME_SEC=2
 SEQUENCER_WAIT_TIME_SEC=2
 PROCESSOR_WAIT_TIME_SEC=5
 BUFFER_WAIT_TIME_SEC=3
@@ -39,13 +38,27 @@ ADMIN_CONTAINER_PORT=5000
 
 # AdminService
 
-
 cd ~/AdminWebPortal/
 rm -f app-awp-*.log
 . ~/setEnvVars.sh
 dotnet $ADMIN_ASSEMBLY_FILE &
 echo "Started $ADMIN_SERVICE_NAME instance"
-sleep $ADMIN_WAIT_TIME_SEC
+
+# Function to check health status
+check_health() {
+  curl -s -X GET http://$ADMIN_CONTAINER_HOST:$ADMIN_CONTAINER_PORT/healthz
+}
+
+# Loop until the health check returns "Healthy"
+while true; do
+  RESPONSE=$(check_health)
+  if [ "$RESPONSE" = "Healthy" ]; then
+    break
+  fi
+  echo "Waiting for AdminWebPortal service to become healthy..."
+  sleep 1
+done
+sleep 1
 
 curl -X DELETE "http://$ADMIN_CONTAINER_HOST:$ADMIN_CONTAINER_PORT/messages?name=$GROUP_NAME"
 echo ""
