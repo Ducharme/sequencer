@@ -7,12 +7,17 @@ AZ0=$(aws ec2 describe-availability-zones --query 'AvailabilityZones[0].ZoneName
 AZ1=$(aws ec2 describe-availability-zones --query 'AvailabilityZones[1].ZoneName' --output text)
 AZ2=$(aws ec2 describe-availability-zones --query 'AvailabilityZones[2].ZoneName' --output text)
 
+mkdir -p .tmp
 KEY_PAIR_NAME=$(aws ec2 describe-key-pairs --key-names sequencer --query 'KeyPairs[*].KeyName' --output text 2>/dev/null)
 if [ -z "$KEY_PAIR_NAME" ] || [ "$KEY_PAIR_NAME" = "None" ]; then
-  aws ec2 create-key-pair --key-name sequencer --tag-specifications 'ResourceType=key-pair,Tags=[{Key=Name,Value=sequencer-key-pair}]' | jq ".KeyMaterial" | tr -d '"' | sed 's/\\n/\n/g' > Scripts/sequencer.pem
-  chmod 400 Scripts/sequencer.pem
-  KEY_PAIR_VALUE=$(cat Scripts/sequencer.pem)
+  aws ec2 create-key-pair --key-name sequencer --tag-specifications 'ResourceType=key-pair,Tags=[{Key=Name,Value=sequencer-key-pair}]' | jq ".KeyMaterial" | tr -d '"' | sed 's/\\n/\n/g' > .tmp/sequencer.pem
+  chmod 400 .tmp/sequencer.pem
+  KEY_PAIR_VALUE=$(cat .tmp/sequencer.pem)
   aws secretsmanager create-secret --name sequencer-key-pair --secret-string "$KEY_PAIR_VALUE" --description "sequencer pem file" --tags Key=Name,Value=sequencer-secret-key-pair
+else
+  KEY_PAIR_VALUE=$(aws secretsmanager get-secret-value --secret-id sequencer-key-pair --query 'SecretString' --output text)
+  echo "$KEY_PAIR_VALUE" > .tmp/sequencer.pem
+  chmod 400 .tmp/sequencer.pem
 fi
 
 # VPC

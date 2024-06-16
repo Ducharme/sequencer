@@ -14,7 +14,7 @@ aws secretsmanager create-secret --name sequencer-aurora-password --secret-strin
 SG_RDS_ID=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=sequencer-sg-private-rds" --query 'SecurityGroups[0].GroupId' --output text)
 aws rds create-db-cluster --db-cluster-identifier sequencer-aurora-cluster --engine aurora-postgresql --engine-version 16.2 --engine-mode provisioned \
   --serverless-v2-scaling-configuration MinCapacity=0.5,MaxCapacity=2 --enable-http-endpoint --availability-zones $AZS \
-  --vpc-security-group-ids $SG_RDS_ID --db-subnet-group-name sequencer-subnet-group-rds --master-username myuser --master-user-password mypassword --database-name sequencer \
+  --vpc-security-group-ids $SG_RDS_ID --db-subnet-group-name sequencer-subnet-group-rds --master-username $PGSQL_USERNAME --master-user-password $PGSQL_PASSWORD --database-name sequencer \
   --backup-retention-period 1 --enable-cloudwatch-logs-exports '["postgresql"]' --storage-encrypted \
   --enable-performance-insights --performance-insights-retention-period 7 --no-deletion-protection --tags Key=Name,Value=sequencer-aurora-cluster # --monitoring-interval 1
 

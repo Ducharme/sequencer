@@ -1,7 +1,7 @@
 
 # Setup
 
-1. One ASG with c6i.xlarge (replace Scripts/sequencer.pem with yours in order to connect)
+1. One ASG with c6i.xlarge (replace .tmp/sequencer.pem with yours in order to connect)
 2. One RDS Aurora Serverless v2 PostgreSQL database cluster and instance
 3. One ElastiCache Serverless Redis 7.1 with 1,000 ECPUs per second and Maximum data storage of 1 GB
 
@@ -80,7 +80,7 @@ Copy apps from local folders to remote server, connect, then launch
 ```
 sh Scripts/installServer.sh
 sh Scripts/copyAppsToServer.sh
-ssh -i Scripts/sequencer.pem ubuntu@<Public IPv4 address or DNS> (see first echo from previous script)
+ssh -i .tmp/sequencer.pem ubuntu@<Public IPv4 address or DNS> (see first echo from previous script)
 sh testAllDotnetOnServer.sh
 ```
 
@@ -91,7 +91,7 @@ Stats from 201 to 300
 
 # Delete
 
-Scripts take up to 30 minutes to delete resources like Aurora database and Redis cache.
+Scripts take between 15 to 30 minutes to delete resources like Aurora database and Redis cache.
 ```
 sh Scripts/delete-asg.sh > ".logs/delete-asg_$(date +"%Y%m%d%H%M%S").log" 2>&1
 sh Scripts/delete-redis.sh > ".logs/delete-redis_$(date +"%Y%m%d%H%M%S").log" 2>&1
