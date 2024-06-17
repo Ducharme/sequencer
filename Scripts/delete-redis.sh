@@ -16,7 +16,7 @@ while true; do
     break
   fi
   echo "Current status: $STATUS. Waiting for cluster to be deleted..."
-  sleep 5 # Wait for 5 seconds before the next check
+  sleep 20 # Wait for 20 seconds before the next check
 done
 echo "Cache cluster sequencer-redis is now deleted"
 
