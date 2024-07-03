@@ -115,3 +115,7 @@ This sequence diagram represents the interactions and flow of messages between s
 The diagram shows the flow of messages from the AdminService to the PendingList, then to the ProcessorService for processing. The processed messages are added to the ProcessedStream and then sequenced by the SequencerService. The SequencerService maintains the original order of messages and adds them to the SequencedStream and SequencedList.
 
 The use of publish/subscribe channels allows for communication and coordination between the services. The ProcessorService subscribes to the PendingNewMessagesChannel/NewMessages channel to receive notifications about new messages, while the SequencerService subscribes to the ProcessedStreamChannel/ProcessedMessages and SequencedStreamChannel/HighestEntryIdAndSequence channels to receive notifications about processed messages and the highest sequenced entry ID, respectively.
+
+## Medium article
+
+[Resilient, Performant, and Scalable Message Processing System](https://medium.com/@claude.ducharme/resilient-performant-and-scalable-message-processing-system-6d7e74706d75)
