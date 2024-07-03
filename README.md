@@ -30,9 +30,9 @@ Design and implement a message processing system that is resilient, performant, 
 1. ElastiCache Serverless Redis providing 99.99% availability SLA
 2. Develop clients in C# .NET Core 8.0 referencing StackExchange.Redis and Npgsql libraries
 3. Deploy multiple active-active instances of a Processing service reading from an input List and writing to a Stream
-4. Deploy a few master-slave instances of a Sequencing service reading from the Stream and writing to an output List
-5. Implement master-slave with a distributed lock in Redis having expiry time of 1 second allowing very fast switch
-6. Keep the slaves constantly ready to be master and continuously requesting ownership of the distributed lock
+4. Deploy a few leader-follower instances of a Sequencing service reading from the Stream and writing to an output List
+5. Implement leader-follower with a distributed lock in Redis having expiry time of 1 second allowing very fast switch
+6. Keep the followers constantly ready to be the leader and continuously requesting ownership of the distributed lock
 7. Utilize Redis Pub/Sub with channels to limit short polling requests
 8. Leverage Lua scripts and transactions to ensure good performances
 9. Implement idempotency in Redis for performance considerations
@@ -69,7 +69,7 @@ Locks
 
 1. The input FIFO queue (Pending List) is where messages are stored and retrieved by the processors
 2. The Processor services (Active-Active) perform parallel processing of messages from the input FIFO queue (can be scaled as needed) then write processed messages to a Processed Stream
-3. The Sequencer services (Active-Standby/Masters-Slave) are responsible for maintaining the original sequence order of the messages. They read messages from the Processed Stream and write them to an output FIFO queue (Sequenced List), ensuring the original sequence order is preserved
+3. The Sequencer services (Active-Standby/Leader-Follower) are responsible for maintaining the original sequence order of the messages. They read messages from the Processed Stream and write them to an output FIFO queue (Sequenced List), ensuring the original sequence order is preserved
 4. Operations on Lists and Streams are follow by the publication of events on channels to avoid many unwanted short pollings requests by services
 5. A database can be used as the system of record for storing processed messages (much slower than saving into Redis so it has been made optional)
 

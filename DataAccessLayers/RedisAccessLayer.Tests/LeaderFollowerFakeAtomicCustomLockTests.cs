@@ -4,14 +4,14 @@ using StackExchange.Redis;
 
 namespace RedisAccessLayer.Tests
 {
-    public class MasterSlaveFakeAtomicCustomLockTests : MasterSlaveFakeBaseTests
+    public class LeaderFollowerFakeAtomicCustomLockTests : LeaderFollowerFakeBaseTests
     {
         protected readonly ISyncLock _distributedLock1;
         protected readonly ISyncLock _distributedLock2;
         protected readonly ISyncLock _distributedLock3;
         protected readonly RedisFakeDatabase _redis = new ();
 
-        public MasterSlaveFakeAtomicCustomLockTests()
+        public LeaderFollowerFakeAtomicCustomLockTests()
             : base()
         {
             _distributedLock1 = new AtomicCustomLock(_connectionManager);
@@ -27,7 +27,7 @@ namespace RedisAccessLayer.Tests
         }
 
         [Fact]
-        public async void AcquireLock_OnlyOneMaster_ExtendNearExpiry()
+        public async void AcquireLock_OnlyOneLeader_ExtendNearExpiry()
         {
             // Arrange
             _databaseMock.Setup(db => db.ScriptEvaluateAsync(AtomicCustomLock.AcquireScript, It.IsAny<RedisKey[]>(), It.IsAny<RedisValue[]>(), It.IsAny<CommandFlags>()))
@@ -51,7 +51,7 @@ namespace RedisAccessLayer.Tests
         }
 
         [Fact]
-        public async void AcquireLock_OnlyOneMaster_ReleaseAtIndex()
+        public async void AcquireLock_OnlyOneLeader_ReleaseAtIndex()
         {
             // Arrange
             _databaseMock.Setup(db => db.ScriptEvaluateAsync(AtomicCustomLock.AcquireScript, It.IsAny<RedisKey[]>(), It.IsAny<RedisValue[]>(), It.IsAny<CommandFlags>()))

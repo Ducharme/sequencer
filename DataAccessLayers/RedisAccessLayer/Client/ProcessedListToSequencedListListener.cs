@@ -74,10 +74,10 @@ namespace RedisAccessLayer
                 }
             }
 
-            bool? isMaster = null;
+            bool? isLeader = null;
             var lastEntries = Array.Empty<string>();
             var defaultLockTime = syncLock.LockExpiry;
-            var lastMasterAttempt = DateTime.MinValue;
+            var lastLeaderAttempt = DateTime.MinValue;
             var releaseLock = false;
             while (listen == 1)
             {
@@ -85,11 +85,11 @@ namespace RedisAccessLayer
                 {
                    // Acquire lock to ensure a single sequencer works at a specific time
                     bool acquired;
-                    if (!isMaster.HasValue)
+                    if (!isLeader.HasValue)
                     {
                         acquired = await syncLock.AcquireLock();
                     }
-                    else if (isMaster.Value)
+                    else if (isLeader.Value)
                     {
                         var remainingTime = syncLock.RemainingLockTime;
                         acquired = remainingTime > TimeSpan.Zero;
@@ -104,10 +104,10 @@ namespace RedisAccessLayer
                     }
                     else
                     {
-                        if (DateTime.UtcNow.Subtract(lastMasterAttempt) > TimeSpan.FromMilliseconds(BufferTime))
+                        if (DateTime.UtcNow.Subtract(lastLeaderAttempt) > TimeSpan.FromMilliseconds(BufferTime))
                         {
                             acquired = await syncLock.AcquireLock();
-                            lastMasterAttempt = DateTime.UtcNow;
+                            lastLeaderAttempt = DateTime.UtcNow;
                         }
                         else
                         {
@@ -115,14 +115,14 @@ namespace RedisAccessLayer
                         }
                     }
 
-                    if (!isMaster.HasValue || isMaster.Value != acquired)
+                    if (!isLeader.HasValue || isLeader.Value != acquired)
                     {
                         logger.Debug($"AcquireLock={acquired}");
                     }
 
                     if (acquired == true)
                     {
-                        isMaster = true;
+                        isLeader = true;
                         if (string.IsNullOrEmpty(LastProcessedEntryId))
                         {
                             logger.Debug("Set last values explicitly to initialize");
@@ -160,13 +160,13 @@ namespace RedisAccessLayer
                             if (released.HasValue && released.Value)
                             {
                                 releaseLock = false;
-                                isMaster = false;
+                                isLeader = false;
                             }
                         }
                     }
                     else
                     {
-                        isMaster = false;
+                        isLeader = false;
                         await Task.Delay(WaitTime);
                     }
                 }

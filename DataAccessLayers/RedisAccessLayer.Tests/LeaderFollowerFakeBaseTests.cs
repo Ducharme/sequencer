@@ -3,7 +3,7 @@ using Moq;
 
 namespace RedisAccessLayer.Tests
 {
-    public abstract class MasterSlaveFakeBaseTests : BasicMockTests
+    public abstract class LeaderFollowerFakeBaseTests : BasicMockTests
     {
         protected static string GetTime()
         {
@@ -17,9 +17,9 @@ namespace RedisAccessLayer.Tests
         {
             const int MaxCount = 15;
             var counter = 0;
-            bool? isMaster = null;
+            bool? isLeader = null;
             var defaultLockTime = syncLock.LockExpiry;
-            var lastMasterAttempt = DateTime.MinValue;
+            var lastLeaderAttempt = DateTime.MinValue;
             var releaseLock = false;
             while (counter < MaxCount)
             {
@@ -27,11 +27,11 @@ namespace RedisAccessLayer.Tests
                 {
                    // Acquire lock to ensure a single sequencer works at a specific time
                     bool acquired;
-                    if (!isMaster.HasValue)
+                    if (!isLeader.HasValue)
                     {
                         acquired = await syncLock.AcquireLock();
                     }
-                    else if (isMaster.Value)
+                    else if (isLeader.Value)
                     {
                         var remainingTime = syncLock.RemainingLockTime;
                         acquired = remainingTime > TimeSpan.Zero;
@@ -51,10 +51,10 @@ namespace RedisAccessLayer.Tests
                     }
                     else
                     {
-                        if (DateTime.UtcNow.Subtract(lastMasterAttempt) > TimeSpan.FromMilliseconds(BufferTime))
+                        if (DateTime.UtcNow.Subtract(lastLeaderAttempt) > TimeSpan.FromMilliseconds(BufferTime))
                         {
                             acquired = await syncLock.AcquireLock();
-                            lastMasterAttempt = DateTime.UtcNow;
+                            lastLeaderAttempt = DateTime.UtcNow;
                         }
                         else
                         {
@@ -62,14 +62,14 @@ namespace RedisAccessLayer.Tests
                         }
                     }
 
-                    if (!isMaster.HasValue || isMaster.Value != acquired)
+                    if (!isLeader.HasValue || isLeader.Value != acquired)
                     {
                         //Console.WriteLine($"{GetTime()} AcquireLock={acquired} #{index}");
                     }
 
                     if (acquired == true)
                     {
-                        isMaster = true;
+                        isLeader = true;
                         await Task.Delay(WaitTime);
 
                         if (releaseLock)
@@ -78,13 +78,13 @@ namespace RedisAccessLayer.Tests
                             if (released.HasValue && released.Value)
                             {
                                 releaseLock = false;
-                                isMaster = false;
+                                isLeader = false;
                             }
                         }
                     }
                     else
                     {
-                        isMaster = false;
+                        isLeader = false;
                         await Task.Delay(WaitTime);
                     }
                 }
@@ -97,7 +97,7 @@ namespace RedisAccessLayer.Tests
                     counter++;
                 }
             }
-            return isMaster ?? false;
+            return isLeader ?? false;
         }
     }
 }

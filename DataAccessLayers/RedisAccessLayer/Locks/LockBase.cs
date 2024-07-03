@@ -15,7 +15,7 @@ namespace RedisAccessLayer
         {
             var channelPrefix = EnvVarReader.GetString("REDIS_CHANNEL_PREFIX", EnvVarReader.NotFound);
             var prefix = channelPrefix != EnvVarReader.NotFound ? string.Concat("{", channelPrefix, "}:") : string.Empty;
-            lockKey = prefix + "sequencer-master";
+            lockKey = prefix + "sequencer-leader";
             lockValue = this.ClientName + "_" + Guid.NewGuid().ToString();
             lockExpiry = DefaultLockExpiry;
         }
