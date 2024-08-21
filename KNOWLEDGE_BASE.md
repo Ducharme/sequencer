@@ -111,4 +111,10 @@ or
 >> You must install or update .NET to run this application.
 >> No frameworks were found.
 ```
+or
+```
+The .NET Core SDK cannot be located: Error running dotnet --info: Error: Command failed
+.NET runtimes installed: No runtimes were found.
+
+```
 Refer to DOTNET section in [INSTALL.md](INSTALL.md)

@@ -4,6 +4,8 @@ Debug/
 Release/
 bin/
 obj/
+**/bin/
+**/obj/
 
 sequencer.pem
 .env.development

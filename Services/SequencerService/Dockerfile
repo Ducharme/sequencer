@@ -9,7 +9,6 @@ RUN mkdir -p /app
 RUN mkdir -p /sln
 WORKDIR /sln
 COPY . .
-
 RUN dotnet restore
 RUN dotnet build --no-restore -c Release
 RUN dotnet publish ./$SERVICE_FOLDER/$PROJECT_NAME/$PROJECT_NAME.csproj -c Release -o /app
@@ -22,6 +21,6 @@ RUN mkdir -p /app
 WORKDIR /app
 COPY --from=build-env /app .
 COPY ./$SERVICE_FOLDER/$PROJECT_NAME/log4net-docker.config ./log4net.config
-COPY .env.production .
+RUN find . /app -name '.env.*' -type f -delete
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "/app/SequencerService.dll"]
