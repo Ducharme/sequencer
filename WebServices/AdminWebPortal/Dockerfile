@@ -23,12 +23,12 @@ COPY --from=build-env /app .
 COPY ./$SERVICE_FOLDER/$PROJECT_NAME/log4net-docker.config ./log4net.config
 RUN find . /app -name '.env.*' -type f -delete
 # Datadog: Download and install/enable the Tracer
-# RUN apt-get update && apt-get install -y curl
-# RUN mkdir -p /opt/datadog \
-#     && mkdir -p /var/log/datadog \
-#     && TRACER_VERSION=$(curl -s https://api.github.com/repos/DataDog/dd-trace-dotnet/releases/latest | grep tag_name | cut -d '"' -f 4 | cut -c2-) \
-#     && curl -LO https://github.com/DataDog/dd-trace-dotnet/releases/download/v${TRACER_VERSION}/datadog-dotnet-apm_${TRACER_VERSION}_amd64.deb \
-#     && dpkg -i ./datadog-dotnet-apm_${TRACER_VERSION}_amd64.deb \
-#     && rm ./datadog-dotnet-apm_${TRACER_VERSION}_amd64.deb
+RUN apt-get update && apt-get install -y curl
+RUN mkdir -p /opt/datadog \
+    && mkdir -p /var/log/datadog \
+    && TRACER_VERSION=$(curl -s https://api.github.com/repos/DataDog/dd-trace-dotnet/releases/latest | grep tag_name | cut -d '"' -f 4 | cut -c2-) \
+    && curl -LO https://github.com/DataDog/dd-trace-dotnet/releases/download/v${TRACER_VERSION}/datadog-dotnet-apm_${TRACER_VERSION}_amd64.deb \
+    && dpkg -i ./datadog-dotnet-apm_${TRACER_VERSION}_amd64.deb \
+    && rm ./datadog-dotnet-apm_${TRACER_VERSION}_amd64.deb
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "/app/AdminWebPortal.dll"]
