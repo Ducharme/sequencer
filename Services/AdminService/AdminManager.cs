@@ -113,5 +113,10 @@ namespace AdminService
         {
             return await list_stream_manager.GetFullProcessedStream();
         }
+
+        public async Task<string> RedisServerInfos()
+        {
+            return await list_stream_manager.RedisServerInfos();
+        }
     }
 }

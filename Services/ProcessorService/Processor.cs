@@ -55,7 +55,7 @@ namespace ProcessorService
             }
             else
             {
-                logger.Error($"Invalid database manager for {message}");
+                logger.Error($"Invalid message name for {message}");
             }
             return true;
         }

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 REDIS_NAME=local-redis
-REDIS_IMAGE=redis:7.2-bookworm
+REDIS_IMAGE=redis:7.4-bookworm
 REDIS_PORT=6379:6379
 
 #docker run --name $REDIS_NAME -d -p $REDIS_PORT -v $(pwd)/redis-config:/data/ $REDIS_IMAGE redis-server /data/redis.conf

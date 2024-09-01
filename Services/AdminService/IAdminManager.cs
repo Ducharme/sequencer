@@ -16,5 +16,7 @@ namespace AdminService
 
         Task<List<MyMessage>> GetAllMessagesFromPendingStream(string name);
         Task<List<MyMessage>> GetAllMessagesFromProcessedStream(string name);
+
+        Task<string> RedisServerInfos();
     }
 }

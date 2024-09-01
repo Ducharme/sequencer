@@ -38,8 +38,8 @@ export REDIS_ENDPOINT=$(getContainerIP "local-redis") && echo "REDIS_ENDPOINT=$R
 if [ -z "$PGSQL_ENDPOINT" ]; then echo "Container local-redis is not running, exiting" && exit 1; fi
 
 ADMIN_CONTAINER_HOST=localhost
-ADMIN_CONTAINER_PORT=5000
-
+ADMIN_CONTAINER_PORT=5002
+export ASPNETCORE_URLS="http://$ADMIN_CONTAINER_HOST:$ADMIN_CONTAINER_PORT"
 
 # AdminService
 
@@ -92,6 +92,9 @@ while [ "$start" -lt "$end" ]; do
   echo ""
   start=$((start + increment))
 done
+
+#echo "Stats from redis servers"
+#curl -X GET "http://$ADMIN_CONTAINER_HOST:$ADMIN_CONTAINER_PORT/servers/stats"
 
 cd $FOLDER
 sh killDotnetServicesLocally.sh

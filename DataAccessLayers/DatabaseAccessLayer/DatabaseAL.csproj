@@ -7,7 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../SharedTypes/CommonTypes/CommonTypes.csproj" />
-    <PackageReference Include="log4net" Version="2.0.15" />
+    <PackageReference Include="log4net" Version="2.0.17" />
     <PackageReference Include="Npgsql" Version="8.0.3" />
   </ItemGroup>
 </Project>

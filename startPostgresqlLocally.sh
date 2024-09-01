@@ -5,7 +5,7 @@ export RUN_ENV_FILE=.env.local
 . ./setEnvFileValues.sh
 
 PGSQL_NAME=local-postgres
-PGSQL_IMAGE=postgres:16.1-bookworm
+PGSQL_IMAGE=postgres:16.4-bookworm
 PGSQL_PORT=5432
 PGSQL_ENV1="-e POSTGRES_USER=$PGSQL_USERNAME"
 PGSQL_ENV2="-e POSTGRES_PASSWORD=$PGSQL_PASSWORD"

@@ -33,8 +33,8 @@ sh killDotnetServicesLocally.sh
 sleep 5
 
 ADMIN_CONTAINER_HOST=localhost
-ADMIN_CONTAINER_PORT=5000
-
+ADMIN_CONTAINER_PORT=5002
+export ASPNETCORE_URLS="http://$ADMIN_CONTAINER_HOST:$ADMIN_CONTAINER_PORT"
 
 # AdminService
 
@@ -107,6 +107,9 @@ while [ "$start" -lt "$end" ]; do
   echo ""
   start=$((start + increment))
 done
+
+#echo "Stats from redis servers"
+#curl -X GET "http://$ADMIN_CONTAINER_HOST:$ADMIN_CONTAINER_PORT/servers/stats"
 
 cd $FOLDER
 sh killDotnetServicesLocally.sh

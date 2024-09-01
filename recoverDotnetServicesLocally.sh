@@ -10,8 +10,12 @@ if [ -z "$PGSQL_ENDPOINT" ]; then echo "Container local-postgres is not running,
 export REDIS_ENDPOINT=$(getContainerIP "local-redis") && echo "REDIS_ENDPOINT=$REDIS_ENDPOINT"
 if [ -z "$PGSQL_ENDPOINT" ]; then echo "Container local-redis is not running, exiting" && exit 1; fi
 
+
+# AdminService
+
 ADMIN_CONTAINER_HOST=localhost
-ADMIN_CONTAINER_PORT=5000
+ADMIN_CONTAINER_PORT=5002
+export ASPNETCORE_URLS="http://$ADMIN_CONTAINER_HOST:$ADMIN_CONTAINER_PORT"
 
 
 # SequencerService

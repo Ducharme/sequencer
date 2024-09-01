@@ -1,3 +1,4 @@
+using log4net;
 using Moq;
 using StackExchange.Redis;
 
@@ -14,6 +15,8 @@ namespace RedisAccessLayer.Tests
 
         public BasicMockTests()
         {
+            ILog logger = LogManager.GetLogger(typeof(BasicMockTests));
+
             // Create mock objects
             var behavior = MockBehavior.Strict;
             _configFetcherMock = new Mock<IRedisConfigurationFetcher>(behavior);
@@ -26,7 +29,7 @@ namespace RedisAccessLayer.Tests
             // Set up behavior
             _configFetcherMock.SetupGet(cf => cf.ClientName).Returns(ClientNamePrefix);
             _configFetcherMock.SetupGet(cf => cf.OptionsWrapper).Returns(configurationOptionsWrapper.Object);
-            connectionMultiplexerWrapperMock.Setup(wrapper => wrapper.Connect(configurationOptionsWrapper.Object)).Returns(_connectionMultiplexerMock.Object);
+            connectionMultiplexerWrapperMock.Setup(wrapper => wrapper.Connect(configurationOptionsWrapper.Object, logger)).Returns(_connectionMultiplexerMock.Object);
 
             _connectionMultiplexerMock.Setup(m => m.GetDatabase(It.IsAny<int>(), null)).Returns(_databaseMock.Object);
             _connectionMultiplexerMock.Setup(m => m.GetSubscriber(null)).Returns(_subscriberMock.Object);

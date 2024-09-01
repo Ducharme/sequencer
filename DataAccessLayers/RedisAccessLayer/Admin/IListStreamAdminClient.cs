@@ -19,5 +19,7 @@ namespace RedisAccessLayer
         Task<bool?> DeletePendingStream();
         Task<bool?> DeleteProcessedStream();
         Task<bool?> DeleteProcessedList();
+
+        Task<string> RedisServerInfos();
     }
 }

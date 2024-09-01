@@ -206,4 +206,9 @@ app.MapGet("/list/stats", async ([FromQuery] string name, [FromQuery] long start
     return Results.Json(obj);
 });
 
+app.MapGet("/redis/infos", async () => {
+    var res = await adm.RedisServerInfos();
+    return Results.Json(new { res });
+});
+
 app.Run();

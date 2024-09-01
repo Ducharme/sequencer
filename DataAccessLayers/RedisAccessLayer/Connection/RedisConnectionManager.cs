@@ -42,7 +42,7 @@ end";
             ConnectionMultiplexerWrapper = cm;
 
             logger.Info($"Creating connection");
-            Connection = cm.Connect(cf.OptionsWrapper);
+            Connection = cm.Connect(cf.OptionsWrapper, logger);
             Database = Connection.GetDatabase();
             Subscriber = Connection.GetSubscriber();
             ClientName = Connection.ClientName;
@@ -78,7 +78,7 @@ end";
                 }
 
                 logger.Info($"Recreating connection");
-                Connection = ConnectionMultiplexerWrapper.Connect(ConfigurationFetcher.OptionsWrapper);
+                Connection = ConnectionMultiplexerWrapper.Connect(ConfigurationFetcher.OptionsWrapper, logger);
                 Database = Connection.GetDatabase();
                 Subscriber = Connection.GetSubscriber();
 
@@ -131,6 +131,10 @@ end";
 
         public void AddSubscription(RedisChannel channel, Action<RedisChannel, RedisValue> handler)
         {
+            if (logger.IsDebugEnabled)
+            {
+                logger.Debug($"Adding subscription to channel {channel} with handler {handler.Method.Name} on {handler.Target}");
+            }
             subscriptions[channel] = handler;
         }
 
@@ -162,6 +166,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"StreamReadAsync {key} with position={position}");
+                }
                 var response = await Database.StreamReadAsync(key, position, count: null, DefaultCommandFlags) ?? [];
                 hasError = false;
                 return response;
@@ -178,6 +186,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ListGetByIndexAsync with key={key}");
+                }
                 var response = await Database.ListGetByIndexAsync(key, 0, DefaultCommandFlags);
                 hasError = false;
                 return response.IsNullOrEmpty ? string.Empty : response.ToString() ?? string.Empty;
@@ -194,6 +206,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ListRangeAsync key={key} with start={start} and stop={stop}");
+                }
                 var response = await Database.ListRangeAsync(key, start, stop, DefaultCommandFlags) ?? [];
                 hasError = false;
                 return response;
@@ -210,6 +226,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"KeyDeleteAsync key={key}");
+                }
                 var response = await Database.KeyDeleteAsync(key, DefaultCommandFlags);
                 hasError = false;
                 return response;
@@ -226,6 +246,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ListRightPopLeftPushListSetByIndexInTransactionAsync source={source} destination={destination} val={val}");
+                }
                 RedisResult result = await Database.ScriptEvaluateAsync(ScriptPendingToProcessing, [source, destination], [val], DefaultCommandFlags);
                 var response = result.IsNull ? string.Empty : result.ToString() ?? string.Empty;
                 hasError = false;
@@ -243,6 +267,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ListLeftPushPublishInTransactionAsync key={key} val={val} publishChannel={publishChannel} publishValue={publishValue}");
+                }
                 var transaction = Database.CreateTransaction();
                 #pragma warning disable CS4014
                 transaction.ListLeftPushAsync(key, val, When.Always, DefaultCommandFlags);
@@ -265,6 +293,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ListLeftPushPublishInTransactionAsync key={key} mms={mms.Count()} publishChannel={publishChannel} publishValue={publishValue}");
+                }
                 var transaction = Database.CreateTransaction();
                 #pragma warning disable CS4014
                 foreach (var mm in mms)
@@ -293,6 +325,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ListRemoveAsync key={key} value={val}");
+                }
                 var response = await Database.ListRemoveAsync(key, val, count: 0, DefaultCommandFlags);
                 hasError = false;
                 return response;
@@ -309,6 +345,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ListRightPopAsync key={key}");
+                }
                 var response = await Database.ListRightPopAsync(key, DefaultCommandFlags);
                 hasError = false;
                 return response.IsNull ? string.Empty : (response.ToString() ?? string.Empty);
@@ -340,9 +380,12 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"StreamAddListRemovePublishInTransactionAsync streamAddKey={streamAddKey} streamAddVal={streamAddVal} listRemoveKey={listRemoveKey} listRemoveVal={listRemoveVal} publishChannel={publishChannel} publishValue={publishValue}");
+                }
                 var keys = new RedisKey[] { listRemoveKey, streamAddKey, publishChannel.ToString() };
                 var vals = new RedisValue[] { 0, listRemoveVal, streamAddVal, publishValue };
-
                 var response = await Database.ScriptEvaluateAsync(StreamAddListRemovePublishLuaScript, keys, vals, DefaultCommandFlags);
                 hasError = false;
                 return (long)response > 0;
@@ -359,6 +402,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"KeyExistsAsync key={key}");
+                }
                 var response = await Database.KeyExistsAsync(key, DefaultCommandFlags);
                 hasError = false;
                 return response;
@@ -375,6 +422,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"StreamInfoAsync key={key}");
+                }
                 var response = await Database.StreamInfoAsync(key, DefaultCommandFlags);
                 hasError = false;
                 return response;
@@ -391,6 +442,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"StreamAddListLeftPushStreamDeletePublishInTransactionAsync streamAddKey={streamAddKey} listLeftPushKey={listLeftPushKey} values={values.Count} streamDeleteKey={streamDeleteKey} streamDeleteValues={streamDeleteValues.Length} publishChannel={publishChannel} publishValue={publishValue}");
+                }                
                 var transaction = Database.CreateTransaction();
                 #pragma warning disable CS4014
                 foreach (var tuple in values)
@@ -422,6 +477,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"StringSetAsync key={key} val={val} expiry={expiry} when={when}");
+                }
                 var response = await Database.StringSetAsync(key, val, expiry, when, DefaultCommandFlags);
                 hasError = false;
                 return response;
@@ -438,6 +497,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"StringGetAsync key={key}");
+                }
                 var response = await Database.StringGetAsync(key, DefaultCommandFlags);
                 hasError = false;
                 return response;
@@ -454,6 +517,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ScriptEvaluateAsync script={script} keys={keys?.Length} values={values?.Length}");
+                }
                 var response = await Database.ScriptEvaluateAsync(script, keys, values, DefaultCommandFlags);
                 hasError = false;
                 return response;
@@ -475,6 +542,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"LockTakeAsync key={key} val={val} expiry={expiry}");
+                }
                 var response = await Database.LockTakeAsync(key, val, expiry, DefaultCommandFlags);
                 hasError = false;
                 return response;
@@ -490,6 +561,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"LockExtendAsync key={key} val={val} expiry={expiry}");
+                }
                 var response = await Database.LockExtendAsync(key, val, expiry, DefaultCommandFlags);
                 hasError = false;
                 return response;
@@ -505,6 +580,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"LockQueryAsync key={key}");
+                }
                 var response = await Database.LockQueryAsync(key, DefaultCommandFlags);
                 hasError = false;
                 return response;
@@ -520,6 +599,10 @@ end";
         {
             try
             {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"LockReleaseAsync key={key} val={val}");
+                }
                 var response = await Database.LockReleaseAsync(key, val, DefaultCommandFlags);
                 hasError = false;
                 return response;
@@ -532,8 +615,41 @@ end";
             }
         }
 
+        public async Task<string> ServerInfos()
+        {
+            var servers = Connection.GetServers();
+            var arr = new List<string>();
+            foreach (var server in servers)
+            {
+                //var info = server.Info("commandstats");
+                var infos = await server.InfoAsync();
+                foreach (var info in infos)
+                {
+                    if (info == null)
+                        continue;
+
+                    foreach(var i in info)
+                    {
+                        arr.Add($"{info.Key}: {i.Key}={i.Value}");
+                    }
+                }
+
+                var lists = await server.CommandListAsync();
+                foreach (var list in lists)
+                {
+                    arr.Add($"CommandList: {list}");
+                }
+                //var keys = server.CommandGetKeys();
+                //var keys = server.CommandCount();
+            }
+            var str = string.Join("\n", arr);
+            logger.Info(str);
+            return str;
+        }
+        
         public void Dispose()
         {
+            logger.Debug($"Disposing connection");
             Connection.Dispose();
         }
     }

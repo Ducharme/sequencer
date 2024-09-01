@@ -17,6 +17,10 @@ namespace RedisAccessLayer
             // Try to set the lock key with the generated value and an expiration
             bool acquired = await rcm.StringSetAsync(lockKey, lockValue, lockExpiry, When.NotExists);
             lockAcquisitionTime = acquired ? DateTime.UtcNow : DateTime.MinValue;
+            if (logger.IsDebugEnabled)
+            {
+                logger.Debug($"AcquireLock for lockKey={lockKey} and lockValue={lockValue} (acquired={acquired} and lockAcquisitionTime={lockAcquisitionTime}");
+            }
             return acquired;
         }
 
@@ -33,8 +37,20 @@ namespace RedisAccessLayer
                 {
                     lockAcquisitionTime = DateTime.MinValue;
                 }
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ReleaseLock for lockKey={lockKey} and lockValue={lockValue} (released={released} with lockAcquisitionTime={lockAcquisitionTime}");
+                }
                 return released;
             }
+            else
+            {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ReleaseLock for lockKey={lockKey} and lockValue={lockValue} (currently not acquired, lockAcquisitionTime={lockAcquisitionTime}");
+                }
+            }
+
             return false;
         }
 
@@ -43,12 +59,23 @@ namespace RedisAccessLayer
             var currentLockValue = await GetLockValue();
             if (currentLockValue == lockValue)
             {
-                bool lockExtended = await rcm.StringSetAsync(lockKey, lockValue, newExpiry, When.Exists);
-                if (lockExtended)
+                bool extended = await rcm.StringSetAsync(lockKey, lockValue, newExpiry, When.Exists);
+                if (extended)
                 {
                     lockAcquisitionTime = DateTime.UtcNow;
                 }
-                return lockExtended;
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ExtendLock for lockKey={lockKey} and lockValue={lockValue} (extended={extended} with lockAcquisitionTime={lockAcquisitionTime}");
+                }
+                return extended;
+            }
+            else
+            {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ExtendLock for lockKey={lockKey} and lockValue={lockValue} (currently not acquired, lockAcquisitionTime={lockAcquisitionTime}");
+                }
             }
             return false;
         }

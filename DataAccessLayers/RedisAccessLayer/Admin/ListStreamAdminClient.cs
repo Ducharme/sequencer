@@ -173,5 +173,11 @@ namespace RedisAccessLayer
             logger.Info($"Deleting list {listKey}");
             return await rcm.KeyDeleteAsync(listKey);
         }
+
+        public async Task<string> RedisServerInfos()
+        {
+            logger.Info($"Logging servers commands");
+            return await rcm.ServerInfos();
+        }
     }
 }

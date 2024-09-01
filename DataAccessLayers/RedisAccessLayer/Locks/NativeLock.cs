@@ -1,7 +1,11 @@
+using log4net;
+
 namespace RedisAccessLayer
 {
     public class NativeLock : LockBase, ISyncLock
     {
+        private static readonly ILog logger = LogManager.GetLogger(typeof(AtomicCustomLock));
+
         public NativeLock(IRedisConnectionManager cm)
             : base (cm)
         {
@@ -11,6 +15,10 @@ namespace RedisAccessLayer
         {
             var acquired = await rcm.LockTakeAsync(lockKey, lockValue, lockExpiry);
             lockAcquisitionTime = acquired ? DateTime.UtcNow : DateTime.MinValue;
+            if (logger.IsDebugEnabled)
+            {
+                logger.Debug($"AcquireLock for lockKey={lockKey} and lockValue={lockValue} (acquired={acquired} and lockAcquisitionTime={lockAcquisitionTime}");
+            }
             return acquired;
         }
 
@@ -21,6 +29,10 @@ namespace RedisAccessLayer
             {
                 lockExpiry = newExpiry;
                 lockAcquisitionTime = DateTime.UtcNow;
+            }
+            if (logger.IsDebugEnabled)
+            {
+                logger.Debug($"ReleaseLock for lockKey={lockKey} and lockValue={lockValue} (extended={extended} with lockAcquisitionTime={lockAcquisitionTime}");
             }
             return extended;
         }
@@ -36,6 +48,10 @@ namespace RedisAccessLayer
             if (released)
             {
                 lockAcquisitionTime = DateTime.MinValue;
+            }
+            if (logger.IsDebugEnabled)
+            {
+                logger.Debug($"ReleaseLock for lockKey={lockKey} and lockValue={lockValue} (released={released} with lockAcquisitionTime={lockAcquisitionTime}");
             }
             return released;
         }
