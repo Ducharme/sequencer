@@ -39,28 +39,35 @@ namespace CommonTypes
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception, string> formatter)
             {
                 var message = formatter(state, exception ?? new Exception("Empty"));
+                // Remove the time
+                var indexOf = message.IndexOf(": ");
+                if (indexOf > 0)
+                {
+                    message = message.Substring(indexOf + 2);
+                }
+
                 switch (logLevel)
                 {
                     case LogLevel.Trace:
-                        _log.Debug($"[{_categoryName}] {message}", exception);
+                        _log.Debug(message, exception);
                         break;
                     case LogLevel.Debug:
-                        _log.Debug($"[{_categoryName}] {message}", exception);
+                        _log.Debug(message, exception);
                         break;
                     case LogLevel.Information:
-                        _log.Info($"[{_categoryName}] {message}", exception);
+                        _log.Info(message, exception);
                         break;
                     case LogLevel.Warning:
-                        _log.Warn($"[{_categoryName}] {message}", exception);
+                        _log.Warn(message, exception);
                         break;
                     case LogLevel.Error:
-                        _log.Error($"[{_categoryName}] {message}", exception);
+                        _log.Error(message, exception);
                         break;
                     case LogLevel.Critical:
-                        _log.Fatal($"[{_categoryName}] {message}", exception);
+                        _log.Fatal(message, exception);
                         break;
                     default:
-                        _log.Info($"[{_categoryName}] {message}", exception);
+                        _log.Info(message, exception);
                         break;
                 }
             }

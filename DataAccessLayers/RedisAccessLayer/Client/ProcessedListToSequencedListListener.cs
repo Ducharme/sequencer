@@ -130,6 +130,7 @@ namespace RedisAccessLayer
                         }
 
                         var count = Interlocked.Read(ref pendingMessages);
+                        logger.Debug($"pendingMessages={count} && sequencingStatus={sequencingStatus}");
                         if (count == 0 && sequencingStatus == SequencingStatus.WasEmpty)
                         {
                             newMessageEvent.Wait(WaitTime);
@@ -137,6 +138,7 @@ namespace RedisAccessLayer
 
                         newMessageEvent.Reset();
                         var entries = await rcm.StreamReadAsync(processedStreamKey, LastProcessedEntryId);
+                        logger.Debug($"StreamReadAsync entries={entries.Length}");
                         if (entries.Length > 0)
                         {
                             isQueueEmpty = false;

@@ -88,7 +88,8 @@ namespace RedisAccessLayer
                     }
 
                     var count = Interlocked.Read(ref pendingMessages);
-                    if (count == 0 && !lastReadHadvalue)
+                    var shoudWait = count == 0 && !lastReadHadvalue;
+                    if (shoudWait)
                     {
                         newMessageEvent.Wait(WaitTime);
                     }
@@ -116,6 +117,7 @@ namespace RedisAccessLayer
 
                         noValueCount = 0;
                     } else {
+                        logger.Debug($"ListRightPopLeftPushListSetByIndexInTransactionAsync received an empty response (shoudWait={shoudWait}, noValueCount={noValueCount}, pendingMessages={pendingMessages}, lastReadHadvalue={lastReadHadvalue})");
                         lastReadHadvalue = false;
                         Interlocked.Exchange(ref pendingMessages, 0);
                         noValueCount += 1;

@@ -27,7 +27,7 @@ namespace RedisAccessLayer
         Task<StreamInfo> StreamInfoAsync(RedisKey key);
         Task<RedisValue> StringGetAsync(RedisKey key);
         Task<bool> StringSetAsync(RedisKey key, RedisValue val, TimeSpan? expiry, When when);
-        Task<RedisResult> ScriptEvaluateAsync(string script, RedisKey[]? keys, RedisValue[]? values);
+        Task<RedisResult> ScriptEvaluateAsync(string scriptName, string script, RedisKey[]? keys, RedisValue[]? values);
         Task<bool> LockTakeAsync(RedisKey key, RedisValue val, TimeSpan expiry);
         Task<bool> LockExtendAsync(RedisKey key, RedisValue val, TimeSpan expiry);
         Task<RedisValue> LockQueryAsync(RedisKey key);

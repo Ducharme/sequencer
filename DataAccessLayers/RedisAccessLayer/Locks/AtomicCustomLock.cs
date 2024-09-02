@@ -45,7 +45,7 @@ namespace RedisAccessLayer
             string requestId = Guid.NewGuid().ToString();
             var rk = new RedisKey[] { lockKey };
             var rv = new RedisValue[] { lockValue, (int)lockExpiry.TotalMilliseconds, requestId };
-            var result = await rcm.ScriptEvaluateAsync(AcquireScript, rk, rv);
+            var result = await rcm.ScriptEvaluateAsync("AcquireScript", AcquireScript, rk, rv);
             var acquired = !result.IsNull && result.ToString() == requestId;
             lockAcquisitionTime = acquired ? DateTime.UtcNow : DateTime.MinValue;
             if (logger.IsDebugEnabled)
@@ -60,7 +60,7 @@ namespace RedisAccessLayer
             string requestId = Guid.NewGuid().ToString();
             var rk = new RedisKey[] { lockKey };
             var rv = new RedisValue[] { lockValue, requestId };
-            var result = await rcm.ScriptEvaluateAsync(ReleaseScript, rk, rv);
+            var result = await rcm.ScriptEvaluateAsync("ReleaseScript", ReleaseScript, rk, rv);
             var released = !result.IsNull && result.ToString() == requestId;
             if (released)
             {
@@ -78,7 +78,7 @@ namespace RedisAccessLayer
             string requestId = Guid.NewGuid().ToString();
             var rk =  new RedisKey[] { lockKey };
             var rv = new RedisValue[] { lockValue, (int)newExpiry.TotalMilliseconds, requestId };
-            var result = await rcm.ScriptEvaluateAsync(ExtendScript, rk, rv);
+            var result = await rcm.ScriptEvaluateAsync("ExtendScript", ExtendScript, rk, rv);
             bool extended = !result.IsNull && result.ToString() == requestId;
             if (extended)
             {

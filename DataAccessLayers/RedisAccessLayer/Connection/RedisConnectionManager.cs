@@ -20,6 +20,7 @@ namespace RedisAccessLayer
         protected volatile bool hasError = false;
 
         private static readonly ILog logger = LogManager.GetLogger(typeof(RedisConnectionManager));
+        private static readonly ILog loggerRedis = LogManager.GetLogger("StackExchange.Redis");
 
         private const string ScriptPendingToProcessing = @"
 local source = KEYS[1]
@@ -42,7 +43,7 @@ end";
             ConnectionMultiplexerWrapper = cm;
 
             logger.Info($"Creating connection");
-            Connection = cm.Connect(cf.OptionsWrapper, logger);
+            Connection = cm.Connect(cf.OptionsWrapper, loggerRedis);
             Database = Connection.GetDatabase();
             Subscriber = Connection.GetSubscriber();
             ClientName = Connection.ClientName;
@@ -78,7 +79,7 @@ end";
                 }
 
                 logger.Info($"Recreating connection");
-                Connection = ConnectionMultiplexerWrapper.Connect(ConfigurationFetcher.OptionsWrapper, logger);
+                Connection = ConnectionMultiplexerWrapper.Connect(ConfigurationFetcher.OptionsWrapper, loggerRedis);
                 Database = Connection.GetDatabase();
                 Subscriber = Connection.GetSubscriber();
 
@@ -513,13 +514,15 @@ end";
             }
         }
 
-        public async Task<RedisResult> ScriptEvaluateAsync(string script, RedisKey[]? keys, RedisValue[]? values)
+        public async Task<RedisResult> ScriptEvaluateAsync(string scriptName, string script, RedisKey[]? keys, RedisValue[]? values)
         {
             try
             {
                 if (logger.IsDebugEnabled)
                 {
-                    logger.Debug($"ScriptEvaluateAsync script={script} keys={keys?.Length} values={values?.Length}");
+                    var strKeys = keys == null ? string.Empty : string.Join(",", keys.Select(x => x.ToString()));
+                    var strVals = values == null ? string.Empty : string.Join(",", values.Select(x => x.ToString()));
+                    logger.Debug($"ScriptEvaluateAsync script={scriptName} keys={strKeys} values={strVals}");
                 }
                 var response = await Database.ScriptEvaluateAsync(script, keys, values, DefaultCommandFlags);
                 hasError = false;

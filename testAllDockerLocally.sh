@@ -49,6 +49,7 @@ export REDIS_ENDPOINT=$(getContainerIP "local-redis") && echo "REDIS_ENDPOINT=$R
 if [ -z "$PGSQL_ENDPOINT" ]; then echo "Container local-redis is not running, exiting" && exit 1; fi
 
 EP_ENVS="-e REDIS_ENDPOINT=$REDIS_ENDPOINT -e PGSQL_ENDPOINT=$PGSQL_ENDPOINT"
+DD_ENVS="-e DD_API_KEY=$DD_API_KEY -e CORECLR_ENABLE_PROFILING=1 -e CORECLR_PROFILER={846F5F1C-F9AE-4B07-969E-05C26BC060D8} -e CORECLR_PROFILER_PATH=/opt/datadog/Datadog.Trace.ClrProfiler.Native.so -e DD_DOTNET_TRACER_HOME=/opt/datadog -e DD_PROCESS_AGENT_ENABLED=true"
 LOGGING="--log-driver json-file"
 ADMIN_CONTAINER_PORT=8080
 
@@ -57,7 +58,7 @@ ADMIN_CONTAINER_PORT=8080
 
 AP_NAME=adminwebportal
 
-echo "docker run --name $AP_NAME -d -p $ADMIN_CONTAINER_PORT:$ADMIN_CONTAINER_PORT $LOGGING $EP_ENVS $AP_NAME" && docker run --name $AP_NAME -d -p $ADMIN_CONTAINER_PORT:$ADMIN_CONTAINER_PORT $LOGGING $EP_ENVS $AP_NAME
+echo "docker run --name $AP_NAME -d -p $ADMIN_CONTAINER_PORT:$ADMIN_CONTAINER_PORT $LOGGING $EP_ENVS <DatadogEnvVars> $AP_NAME" && docker run --name $AP_NAME -d -p $ADMIN_CONTAINER_PORT:$ADMIN_CONTAINER_PORT $LOGGING $EP_ENVS $DD_ENVS $AP_NAME
 sleep $ADMIN_WAIT_TIME_SEC
 
 export ADMIN_CONTAINER_HOST=$(getContainerIP "$AP_NAME")
@@ -71,7 +72,7 @@ echo ""
 # SequencerService
 
 for i in $(seq 1 "$NB_SEQUENCERS"); do
-    echo "docker run $LOGGING -d $EP_ENVS sequencerservice (#$i) " && docker run $LOGGING -d $EP_ENVS sequencerservice
+    echo "docker run $LOGGING -d $EP_ENVS <DatadogEnvVars> sequencerservice (#$i) " && docker run $LOGGING -d $EP_ENVS $DD_ENVS sequencerservice
 done
 sleep $SEQUENCER_WAIT_TIME_SEC
 
@@ -79,7 +80,7 @@ sleep $SEQUENCER_WAIT_TIME_SEC
 # ProcessorService
 
 for i in $(seq 1 "$NB_PROCESSORS"); do
-    echo "docker run $LOGGING -d $EP_ENVS processorservice (#$i) " && docker run $LOGGING -d $EP_ENVS processorservice 
+    echo "docker run $LOGGING -d $EP_ENVS <DatadogEnvVars> processorservice (#$i) " && docker run $LOGGING -d $EP_ENVS $DD_ENVS processorservice 
 done
 sleep $PROCESSOR_WAIT_TIME_SEC
 

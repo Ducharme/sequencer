@@ -29,6 +29,8 @@ fi
 
 export GROUP_NAME=$(echo "$GREP_GROUP_NAME" | cut -d '=' -f2)
 echo "GROUP_NAME=$GROUP_NAME"
+export DD_API_KEY=$(echo "$DD_API_KEY" | cut -d '=' -f2)
+echo "DD_API_KEY=*****"
 export PGSQL_ENDPOINT=$(echo "$GREP_PGSQL_ENDPOINT" | cut -d '=' -f2)
 echo "PGSQL_ENDPOINT=$PGSQL_ENDPOINT"
 export PGSQL_USERNAME=$(echo "$GREP_PGSQL_USERNAME" | cut -d '=' -f2)
