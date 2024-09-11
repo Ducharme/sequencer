@@ -72,13 +72,12 @@ namespace RedisAccessLayer
                                         var processingAt1 = DateTimeHelper.GetDateTime(mm1.ProcessingAt);
                                         var allowedTime = TimeSpan.FromMilliseconds(ProcessingAllowedTime);
                                         var diffTime = DateTime.UtcNow.Subtract(processingAt1);
-                                        logger.Warn($"List {processingListKey} has message {rv1} with processingAt={processingAt1} and diffTime(ms)={diffTime.TotalMilliseconds}");
                                         if (diffTime > allowedTime)
                                         {
-                                            logger.Warn($"List {processingListKey} is stuck with message {rv1}, will try reprocessing");
+                                            logger.Warn($"List {processingListKey} is stuck with message {rv1} processingAt={processingAt1} and diffTime(ms)={diffTime.TotalMilliseconds}, will try reprocessing");
                                             await handler(pendingListKey, str1, mm1);
                                         } else {
-                                            logger.Debug($"List {processingListKey} message {rv1} is not old enough to be reprocessed yet");
+                                            logger.Debug($"List {processingListKey} message {rv1} is not old enough to be reprocessed yet with processingAt={processingAt1} and diffTime(ms)={diffTime.TotalMilliseconds}");
                                         }
                                     }
                                 }
@@ -218,26 +217,32 @@ namespace RedisAccessLayer
         {
             // NOTE: New values are added to the left of the list (beginning)
             // The latest value is the highest at index 0, if the list is not empty
-            var val = await rcm.ListGetByIndexAsync(listKey);
-            if (!string.IsNullOrEmpty(val))
+            var val = await rcm.ListGetByIndexAsync(listKey, 0);
+            if (!string.IsNullOrEmpty(val) && val.Length > 0)
             {
-                if (val.Length == 0)
+                var str = val.ToString();
+                var indexOf = str.IndexOf(';');
+                if (indexOf > 0)
                 {
-                    return false;
+                    var lastSeqStr = str.Substring(0, indexOf);
+                    if (int.TryParse(lastSeqStr, out int lastSeq))
+                    {
+                        logger.Debug($"WasProcessed listKey={listKey} sequence={sequence} lastSeqStr={lastSeqStr} returns {lastSeq >= sequence}"); // TODO: REMOVE
+                        return lastSeq >= sequence;
+                    }
+                    else
+                    {
+                        logger.Debug($"WasProcessed listKey={listKey} sequence={sequence} lastSeqStr={lastSeqStr} TryParse=false"); // TODO: REMOVE
+                    }
                 }
                 else
                 {
-                    var str = val.ToString();
-                    var indexOf = str.IndexOf(';');
-                    if (indexOf > 0)
-                    {
-                        var lastSeqStr = str.Substring(0, indexOf);
-                        if (int.TryParse(lastSeqStr, out int lastSeq))
-                        {
-                            return lastSeq >= sequence;
-                        }
-                    }
+                    logger.Debug($"WasProcessed listKey={listKey} sequence={sequence} indexOf<=0"); // TODO: REMOVE
                 }
+            }
+            else
+            {
+                logger.Debug($"WasProcessed listKey={listKey} sequence={sequence} string.IsNullOrEmpty(val) || val.Length == 0 returns false");; // TODO: REMOVE
             }
             return false;
         }

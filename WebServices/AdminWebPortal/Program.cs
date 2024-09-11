@@ -19,10 +19,10 @@ AS.Program.ConfigureLogging();
 
 var builder = WebApplication.CreateBuilder(args ?? []);
 var serviceProvider = AS.Program.ConfigureServices(builder.Services);
-builder.Services.AddHealthChecks();
 // Add services to the container.
 builder.Services.AddRazorPages();
-
+builder.Services.AddHealthChecks().AddCheck<RedisHealthCheck>("RedisClientPing");
+//builder.Services.AddHealthChecks().AddCheck("RedisClientPing", sp => new RedisHealthCheck(sp));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

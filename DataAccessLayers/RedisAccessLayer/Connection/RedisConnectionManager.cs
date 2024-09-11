@@ -183,7 +183,7 @@ end";
             }
         }
 
-        public async Task<string> ListGetByIndexAsync(RedisKey key)
+        public async Task<string> ListGetByIndexAsync(RedisKey key, long index)
         {
             try
             {
@@ -191,7 +191,7 @@ end";
                 {
                     logger.Debug($"ListGetByIndexAsync with key={key}");
                 }
-                var response = await Database.ListGetByIndexAsync(key, 0, DefaultCommandFlags);
+                var response = await Database.ListGetByIndexAsync(key, index, DefaultCommandFlags);
                 hasError = false;
                 return response.IsNullOrEmpty ? string.Empty : response.ToString() ?? string.Empty;
             }
@@ -648,6 +648,29 @@ end";
             var str = string.Join("\n", arr);
             logger.Info(str);
             return str;
+        }
+
+        public async Task<TimeSpan> Ping()
+        {
+            try
+            {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"Ping when isConnected={isConnected} and Connection.IsConnected={Connection.IsConnected}");
+                }
+                var response = await Database.PingAsync(DefaultCommandFlags);
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"Ping returned {response}");
+                }
+                return response;
+            }
+            catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisCommandException || ex is RedisConnectionException || ex is RedisException)
+            {
+                hasError = true;
+                logger.Error($"Ping failed", ex);
+                throw;
+            }
         }
         
         public void Dispose()

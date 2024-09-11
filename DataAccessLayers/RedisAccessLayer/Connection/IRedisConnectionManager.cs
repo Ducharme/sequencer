@@ -16,7 +16,7 @@ namespace RedisAccessLayer
         
         Task<StreamEntry[]> StreamReadAsync(RedisKey key, RedisValue position);
         Task<RedisValue[]> ListRangeAsync(RedisKey key, long start = 0, long stop = -1);
-        Task<string> ListGetByIndexAsync(RedisKey key);
+        Task<string> ListGetByIndexAsync(RedisKey key, long index);
         Task<bool> KeyDeleteAsync(RedisKey key);
         Task<string> ListRightPopLeftPushListSetByIndexInTransactionAsync(RedisKey source, RedisKey destination, long val);
         Task<bool> ListLeftPushPublishInTransactionAsync(RedisKey key, RedisValue val, RedisChannel publishChannel, RedisValue publishValue);
@@ -35,5 +35,6 @@ namespace RedisAccessLayer
         Task<bool> StreamAddListRemovePublishInTransactionAsync(RedisKey streamAddKey, RedisValue streamAddVal, string listRemoveKey, RedisValue listRemoveVal, RedisChannel publishChannel, RedisValue publishValue);
         Task<bool> StreamAddListLeftPushStreamDeletePublishInTransactionAsync(RedisKey streamAddKey, RedisKey listLeftPushKey, List<Tuple<string, NameValueEntry[]>> values, RedisKey streamDeleteKey, RedisValue[] streamDeleteValues, RedisChannel publishChannel, RedisValue publishValue);
         Task<string> ServerInfos();
+        Task<TimeSpan> Ping();
     }
 }

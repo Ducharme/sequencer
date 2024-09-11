@@ -2,7 +2,7 @@
 
 # docker login
 
-VERSION=0.0.2-dd
+VERSION=0.0.6-dd
 
 docker tag adminwebportal:latest claudeducharme/adminwebportal:$VERSION
 docker push claudeducharme/adminwebportal:$VERSION

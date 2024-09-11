@@ -21,5 +21,6 @@ namespace RedisAccessLayer
         Task<bool?> DeleteProcessedList();
 
         Task<string> RedisServerInfos();
+        Task<TimeSpan> Ping();
     }
 }

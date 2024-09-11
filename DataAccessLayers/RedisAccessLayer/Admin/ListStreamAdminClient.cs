@@ -176,8 +176,14 @@ namespace RedisAccessLayer
 
         public async Task<string> RedisServerInfos()
         {
-            logger.Info($"Logging servers commands");
+            logger.Info("Logging servers commands");
             return await rcm.ServerInfos();
+        }
+
+        public async Task<TimeSpan> Ping()
+        {
+            logger.Info("Ping");
+            return await rcm.Ping();
         }
     }
 }
