@@ -659,10 +659,7 @@ end";
                     logger.Debug($"Ping when isConnected={isConnected} and Connection.IsConnected={Connection.IsConnected}");
                 }
                 var response = await Database.PingAsync(DefaultCommandFlags);
-                if (logger.IsDebugEnabled)
-                {
-                    logger.Debug($"Ping returned {response}");
-                }
+                hasError = false;
                 return response;
             }
             catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisCommandException || ex is RedisConnectionException || ex is RedisException)

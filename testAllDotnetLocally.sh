@@ -40,6 +40,7 @@ if [ -z "$PGSQL_ENDPOINT" ]; then echo "Container local-redis is not running, ex
 ADMIN_CONTAINER_HOST=localhost
 ADMIN_CONTAINER_PORT=5002
 export ASPNETCORE_URLS="http://$ADMIN_CONTAINER_HOST:$ADMIN_CONTAINER_PORT"
+#export DOTNET_URLS="http://0.0.0.0:$ADMIN_CONTAINER_PORT"
 
 # AdminService
 
@@ -49,6 +50,7 @@ dotnet $ADMIN_ASSEMBLY_FILE &
 echo "Started $ADMIN_SERVICE_NAME instance"
 sleep $ADMIN_WAIT_TIME_SEC
 
+curl -s -L -X GET "http://$ADMIN_CONTAINER_HOST:$ADMIN_CONTAINER_PORT/healthz"
 curl -X DELETE "http://$ADMIN_CONTAINER_HOST:$ADMIN_CONTAINER_PORT/messages?name=$GROUP_NAME"
 echo ""
 

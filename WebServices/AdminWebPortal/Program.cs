@@ -1,15 +1,8 @@
-using System.Threading.Tasks;
-
 using CommonTypes;
 using AS=AdminService;
-using DatabaseAccessLayer;
-using WebAdminPortal;
 
 using log4net;
-using log4net.Config;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
 using RedisAccessLayer;
 using AdminService;
 
@@ -21,8 +14,9 @@ var builder = WebApplication.CreateBuilder(args ?? []);
 var serviceProvider = AS.Program.ConfigureServices(builder.Services);
 // Add services to the container.
 builder.Services.AddRazorPages();
-builder.Services.AddHealthChecks().AddCheck<RedisHealthCheck>("RedisClientPing");
-//builder.Services.AddHealthChecks().AddCheck("RedisClientPing", sp => new RedisHealthCheck(sp));
+builder.Services.AddScoped<RedisCachedHealthCheck>();
+builder.Services.AddScoped<RedisDetailedHealthCheck>();
+builder.Services.AddScoped<RedisPingHealthCheck>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -46,8 +40,21 @@ var adm = app.Services.GetService<IAdminManager>() ?? throw new NullReferenceExc
 
 app.MapGet("/", () => "Hello World!");
 
-// Writes HealthStatus as a plaintext response to the client (either Healthy, Degraded, or Unhealthy).
-app.MapHealthChecks("/healthz");
+app.MapGet("/healthz", async (RedisPingHealthCheck healthCheck) =>
+{
+    return await healthCheck.CheckAsync();
+});
+
+app.MapGet("/healthc", (RedisCachedHealthCheck healthCheck) =>
+{
+    int statusCode = healthCheck.CheckSync();
+    return Results.Text(statusCode.ToString());
+});
+
+app.MapGet("/healthd", (RedisDetailedHealthCheck healthCheck) =>
+{
+    return healthCheck.CheckSync();
+});
 
 app.MapGet("/index.htm", () => {
 var htmlContent = @"<!doctype html>
