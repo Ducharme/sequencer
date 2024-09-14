@@ -8,7 +8,6 @@ namespace RedisAccessLayer
     public class ProcessedListToSequencedListListener : ProcessedStreamToSequencedListClientBase, IProcessedToSequencedListener
     {
         public string? LastProcessedEntryId { get; protected set; }
-        private long shouldListen = 1;
         private long pendingMessages = 0;
         private bool? isQueueEmpty = null;
         private readonly ISyncLock syncLock;
@@ -35,11 +34,6 @@ namespace RedisAccessLayer
             var prefix = channelPrefix != EnvVarReader.NotFound ? string.Concat("{", channelPrefix, "}:") : string.Empty;
             SequencedStreamChannel = RedisChannel.Literal(prefix + "HighestEntryIdAndSequence");
             ProcessedStreamChannel = RedisChannel.Literal(prefix + "ProcessedMessages");
-        }
-
-        public void StopListening()
-        {
-            Interlocked.Exchange(ref this.shouldListen, 0);
         }
 
         public async Task ListenForPendingMessages(Func<Dictionary<string, MyMessage>, Task<bool>> handler)
@@ -189,6 +183,7 @@ namespace RedisAccessLayer
                     listen = Interlocked.Read(ref this.shouldListen);
                 }
             }
+            Interlocked.Exchange(ref this.isExiting, 1);
         }
 
         private async Task<string[]> SequenceEntries(Func<Dictionary<string, MyMessage>, Task<bool>> handler, string[] lastEntries, StreamEntry[] entries)

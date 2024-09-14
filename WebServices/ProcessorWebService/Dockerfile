@@ -19,7 +19,7 @@ RUN dotnet build --no-restore -c Release
 RUN dotnet publish ./$SERVICE_FOLDER/$PROJECT_NAME/$PROJECT_NAME.csproj -c Release -o /app
 
 # Build runtime image
-FROM mcr.microsoft.com/dotnet/runtime:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 ARG PROJECT_NAME
 ARG SERVICE_FOLDER
 RUN mkdir -p /app

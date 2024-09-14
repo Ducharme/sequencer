@@ -1,16 +1,20 @@
 #!/bin/sh
 
-PS_NAME=processorservice
-PS_CONTAINER_ID=$(docker ps -a | grep "$PS_NAME" | awk '{print $1}')
-if [ ! -z "$PS_CONTAINER_ID" ]; then echo "docker stop $PS_NAME $PS_CONTAINER_ID" && docker stop $PS_CONTAINER_ID > /dev/null; fi
-if [ ! -z "$PS_CONTAINER_ID" ]; then echo "docker rm $PS_NAME $PS_CONTAINER_ID" && docker rm $PS_CONTAINER_ID > /dev/null; fi
+stop_and_remove_container() {
+    local name=$1
+    local container_id=$(docker ps -a | grep "$name" | awk '{print $1}')
+    if [ ! -z "$container_id" ]; then
+        echo "docker stop $name $container_id"
+        docker stop $container_id > /dev/null
+        echo "docker rm $name $container_id"
+        docker rm $container_id > /dev/null
+    fi
+}
 
-SS_NAME=sequencerservice
-SS_CONTAINER_ID=$(docker ps -a | grep "$SS_NAME" | awk '{print $1}')
-if [ ! -z "$SS_CONTAINER_ID" ]; then echo "docker stop $SS_NAME $SS_CONTAINER_ID" && docker stop $SS_CONTAINER_ID > /dev/null; fi
-if [ ! -z "$SS_CONTAINER_ID" ]; then echo "docker rm $SS_NAME $SS_CONTAINER_ID" && docker rm $SS_CONTAINER_ID > /dev/null; fi
+stop_and_remove_container "adminservice"
+stop_and_remove_container "processorservice"
+stop_and_remove_container "sequencerservice"
+stop_and_remove_container "adminwebportal"
+stop_and_remove_container "processorwebservice"
+stop_and_remove_container "sequencerwebservice"
 
-AP_NAME=adminwebportal
-AP_CONTAINER_ID=$(docker ps -a | grep "$AP_NAME" | awk '{print $1}')
-if [ ! -z "$AP_CONTAINER_ID" ]; then echo "docker stop $AP_NAME $AP_CONTAINER_ID" && docker stop $AP_CONTAINER_ID > /dev/null; fi
-if [ ! -z "$AP_CONTAINER_ID" ]; then echo "docker rm $AP_NAME $AP_CONTAINER_ID" && docker rm $AP_CONTAINER_ID > /dev/null; fi

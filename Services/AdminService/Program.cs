@@ -12,6 +12,13 @@ namespace AdminService
     public static class Program
     {
         private static readonly ILog logger = LogManager.GetLogger(typeof(Program));
+        private static readonly List<ServiceProvider> _sps = [];
+
+        public static void AssignEvents()
+        {
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+        }
 
         public static void ConfigureLogging()
         {
@@ -30,15 +37,16 @@ namespace AdminService
             // NOTE: Replace DatabaseDummyAdmin by DatabaseAdmin to use a real database
             services.AddSingleton<IDatabaseAdmin, DatabaseDummyAdmin>();
             services.AddSingleton<IListStreamAdminClient, ListStreamAdminClient>();
+            services.AddSingleton<ClientBase, ListStreamAdminClient>();
             services.AddSingleton<IAdminManager, AdminManager>();
             var serviceProvider = services.BuildServiceProvider();
+            _sps.Add(serviceProvider);
             return serviceProvider;
         }
         
         public static async Task Main(string[] args)
         {
-            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-
+            AssignEvents();
             ConfigureLogging();
 
             if (!EnvVarSetter.SetFromArgs(args, logger))
@@ -95,12 +103,40 @@ namespace AdminService
             }
         }
 
-        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        private static async void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             Console.WriteLine($"Unhandled exception: {e.ExceptionObject}");
             logger.Fatal($"Unhandled exception: {e.ExceptionObject}");
-
+            await Shutdown();
             Environment.Exit(1);
+        }
+
+        private static async void CurrentDomain_ProcessExit(object? sender, System.EventArgs? e)
+        {
+            Console.WriteLine($"SIGTERM received. Shutting down gracefully");
+            logger.Warn($"SIGTERM received. Shutting down gracefully");
+            await Shutdown();
+            Environment.Exit(1);
+        }
+
+        public async static Task Shutdown()
+        {
+            if (_sps.Count > 0)
+            {
+                var sp = _sps.First();
+                var ppl = sp.GetService<ClientBase>();
+                if (ppl != null)
+                {
+                    ppl.StopListening();
+                    const int max = 30;
+                    int counter = 0;
+                    while (ppl.IsConnected && !ppl.IsExiting && counter < max)
+                    {
+                        await Task.Delay(100); // Wait for 100ms
+                    }
+                    ppl.Dispose();
+                }
+            }
         }
     }
 }

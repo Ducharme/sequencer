@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using RedisAccessLayer;
 using AdminService;
 
+AS.Program.AssignEvents();
 // Consider https://aspdotnethelp.com/implement-log4net-in-asp-net-core-application/
 ILog logger = LogManager.GetLogger(typeof(Program));
 AS.Program.ConfigureLogging();
@@ -17,6 +18,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddScoped<RedisCachedHealthCheck>();
 builder.Services.AddScoped<RedisDetailedHealthCheck>();
 builder.Services.AddScoped<RedisPingHealthCheck>();
+builder.Services.AddHostedService<SpotTerminationHandler>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

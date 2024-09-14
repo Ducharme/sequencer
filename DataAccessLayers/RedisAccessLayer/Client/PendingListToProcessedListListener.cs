@@ -10,7 +10,6 @@ namespace RedisAccessLayer
     public class PendingListToProcessedListListener : PendingListToProcessedStreamClientBase, IPendingToProcessedListener
     {
         public string? LastProcessedEntryId { get; protected set; }
-        private long shouldListen = 1;
         private long pendingMessages = 0;
         private const long ListBatchSize = 1000;
         private readonly ManualResetEventSlim newMessageEvent = new ManualResetEventSlim(false);
@@ -29,11 +28,6 @@ namespace RedisAccessLayer
             var prefix = channelPrefix != EnvVarReader.NotFound ? string.Concat("{", channelPrefix, "}:") : string.Empty;
             PendingNewMessagesChannel = RedisChannel.Literal(prefix + "NewMessages");
             ProcessedStreamChannel = RedisChannel.Literal(prefix + "ProcessedMessages");
-        }
-
-        public void StopListening()
-        {
-            Interlocked.Exchange(ref this.shouldListen, 0);
         }
 
         public async Task ListenMessagesFromPendingList(Func<string, string, MyMessage, Task<bool>> handler)
@@ -137,6 +131,7 @@ namespace RedisAccessLayer
                     await Task.Delay(LongWaitTime);
                 }
             }
+            Interlocked.Exchange(ref this.isExiting, 1);
         }
 
         private async Task SubscribeToNewMessagesChannel()
@@ -227,22 +222,22 @@ namespace RedisAccessLayer
                     var lastSeqStr = str.Substring(0, indexOf);
                     if (int.TryParse(lastSeqStr, out int lastSeq))
                     {
-                        logger.Debug($"WasProcessed listKey={listKey} sequence={sequence} lastSeqStr={lastSeqStr} returns {lastSeq >= sequence}"); // TODO: REMOVE
+                        logger.Debug($"WasProcessed listKey={listKey} sequence={sequence} lastSeqStr={lastSeqStr} returns {lastSeq >= sequence}");
                         return lastSeq >= sequence;
                     }
                     else
                     {
-                        logger.Debug($"WasProcessed listKey={listKey} sequence={sequence} lastSeqStr={lastSeqStr} TryParse=false"); // TODO: REMOVE
+                        logger.Debug($"WasProcessed listKey={listKey} sequence={sequence} lastSeqStr={lastSeqStr} TryParse=false");
                     }
                 }
                 else
                 {
-                    logger.Debug($"WasProcessed listKey={listKey} sequence={sequence} indexOf<=0"); // TODO: REMOVE
+                    logger.Debug($"WasProcessed listKey={listKey} sequence={sequence} indexOf<=0");
                 }
             }
             else
             {
-                logger.Debug($"WasProcessed listKey={listKey} sequence={sequence} string.IsNullOrEmpty(val) || val.Length == 0 returns false");; // TODO: REMOVE
+                logger.Debug($"WasProcessed listKey={listKey} sequence={sequence} string.IsNullOrEmpty(val) || val.Length == 0 returns false");
             }
             return false;
         }
