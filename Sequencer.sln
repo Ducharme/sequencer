@@ -13,11 +13,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RedisAL.Tests", "DataAccess
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdminService", "Services\AdminService\AdminService.csproj", "{3828D68F-CF5E-48C3-8792-9AF393CA626A}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommonServiceLib", "Services\CommonServiceLib\CommonServiceLib.csproj", "{7B29F8C6-3D4E-42A1-9F5B-8C1D6E3A7F2D}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProcessorService", "Services\ProcessorService\ProcessorService.csproj", "{94B9EA2C-B1D3-40F0-B329-E5CA1E1D9ECB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SequencerService", "Services\SequencerService\SequencerService.csproj", "{D3B5C2D9-8D3D-4A0B-9F7A-7E1E8A5F6442}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdminWebPortal", "WebServices\AdminWebPortal\AdminWebPortal.csproj", "{D3C2E9A8-8B4F-4E7D-9C3A-0F1B2D6E5A7F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommonWebServiceLib", "WebServices\CommonWebServiceLib\CommonWebServiceLib.csproj", "{F1E8D5C2-9B7A-4C3F-8E6D-2A1B9C7D5E3F}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProcessorWebService", "WebServices\ProcessorWebService\ProcessorWebService.csproj", "{F8A0B1D2-3E6C-4A9B-8D7F-5E4C6B0A1F9E}"
 EndProject
@@ -53,6 +57,10 @@ Global
 		{3828D68F-CF5E-48C3-8792-9AF393CA626A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3828D68F-CF5E-48C3-8792-9AF393CA626A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3828D68F-CF5E-48C3-8792-9AF393CA626A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B29F8C6-3D4E-42A1-9F5B-8C1D6E3A7F2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B29F8C6-3D4E-42A1-9F5B-8C1D6E3A7F2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B29F8C6-3D4E-42A1-9F5B-8C1D6E3A7F2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B29F8C6-3D4E-42A1-9F5B-8C1D6E3A7F2D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{94B9EA2C-B1D3-40F0-B329-E5CA1E1D9ECB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{94B9EA2C-B1D3-40F0-B329-E5CA1E1D9ECB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{94B9EA2C-B1D3-40F0-B329-E5CA1E1D9ECB}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -65,6 +73,10 @@ Global
 		{D3C2E9A8-8B4F-4E7D-9C3A-0F1B2D6E5A7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D3C2E9A8-8B4F-4E7D-9C3A-0F1B2D6E5A7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D3C2E9A8-8B4F-4E7D-9C3A-0F1B2D6E5A7F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1E8D5C2-9B7A-4C3F-8E6D-2A1B9C7D5E3F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1E8D5C2-9B7A-4C3F-8E6D-2A1B9C7D5E3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1E8D5C2-9B7A-4C3F-8E6D-2A1B9C7D5E3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1E8D5C2-9B7A-4C3F-8E6D-2A1B9C7D5E3F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F8A0B1D2-3E6C-4A9B-8D7F-5E4C6B0A1F9E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F8A0B1D2-3E6C-4A9B-8D7F-5E4C6B0A1F9E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F8A0B1D2-3E6C-4A9B-8D7F-5E4C6B0A1F9E}.Release|Any CPU.ActiveCfg = Release|Any CPU

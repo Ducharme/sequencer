@@ -1,24 +1,30 @@
+using Microsoft.AspNetCore.Mvc;
+using log4net;
+
 using CommonTypes;
+using RedisAccessLayer;
 using AS=AdminService;
 
-using log4net;
-using Microsoft.AspNetCore.Mvc;
-using RedisAccessLayer;
-using AdminService;
-
-AS.Program.AssignEvents();
+CommonServiceLib.Program.AssignEvents();
 // Consider https://aspdotnethelp.com/implement-log4net-in-asp-net-core-application/
 ILog logger = LogManager.GetLogger(typeof(Program));
-AS.Program.ConfigureLogging();
+CommonServiceLib.Program.ConfigureLogging();
 
 var builder = WebApplication.CreateBuilder(args ?? []);
 var serviceProvider = AS.Program.ConfigureServices(builder.Services);
-// Add services to the container.
+CommonServiceLib.Program.AddServiceProvider(serviceProvider);
+
 builder.Services.AddRazorPages();
-builder.Services.AddScoped<RedisCachedHealthCheck>();
-builder.Services.AddScoped<RedisDetailedHealthCheck>();
-builder.Services.AddScoped<RedisPingHealthCheck>();
-builder.Services.AddHostedService<SpotTerminationHandler>();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<RedisCachedHealthCheck>();
+builder.Services.AddSingleton<RedisDetailedHealthCheck>();
+builder.Services.AddSingleton<RedisPingHealthCheck>();
+builder.Services.AddHostedService<GracefulShutdownService>();
+if (AwsEnvironmentDetector.IsRunningOnAWS())
+{
+    builder.Services.AddHostedService<AwsEc2SpotTerminationHandler>();
+}
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -27,36 +33,21 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 //TODO: Uncomment app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthorization();
-
 app.MapRazorPages();
 
-var adm = app.Services.GetService<IAdminManager>() ?? throw new NullReferenceException("IAdminManager implementation could not be resolved");
+var adm = app.Services.GetService<AS.IAdminManager>() ?? throw new NullReferenceException("IAdminManager implementation could not be resolved");
 
 app.MapGet("/", () => "Hello World!");
 
-app.MapGet("/healthz", async (RedisPingHealthCheck healthCheck) =>
-{
-    return await healthCheck.CheckAsync();
-});
-
-app.MapGet("/healthc", (RedisCachedHealthCheck healthCheck) =>
-{
-    int statusCode = healthCheck.CheckSync();
-    return Results.Text(statusCode.ToString());
-});
-
-app.MapGet("/healthd", (RedisDetailedHealthCheck healthCheck) =>
-{
-    return healthCheck.CheckSync();
-});
+HealthEnpoints.MapGet(app);
 
 app.MapGet("/index.htm", () => {
 var htmlContent = @"<!doctype html>

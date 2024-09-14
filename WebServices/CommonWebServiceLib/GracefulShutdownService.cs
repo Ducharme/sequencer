@@ -1,5 +1,4 @@
 using log4net;
-using PS=ProcessorService;
 
 public class GracefulShutdownService : IHostedService
 {
@@ -22,6 +21,6 @@ public class GracefulShutdownService : IHostedService
     private async void OnShutdown()
     {
         logger.Info("Application is shutting down...");
-        await PS.Program.Shutdown();
+        await CommonServiceLib.Program.Shutdown();
     }
 }

@@ -29,7 +29,7 @@ public static class AwsEnvironmentDetector
         }
         catch (Exception ex)
         {
-            logger.Error("Failed to check EC2 meta-data", ex);
+            logger.Info($"Failed to check EC2 meta-data. Source={ex.Source} Message={ex.Message}");
             success = false;
         }
         return success;

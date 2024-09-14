@@ -9,6 +9,7 @@
     <ProjectReference Include="../../SharedTypes/CommonTypes/CommonTypes.csproj" />
     <ProjectReference Include="../../DataAccessLayers/DatabaseAccessLayer/DatabaseAL.csproj" />
     <ProjectReference Include="../../DataAccessLayers/RedisAccessLayer/RedisAL.csproj" />
+    <ProjectReference Include="../CommonServiceLib/CommonServiceLib.csproj" />
     <PackageReference Include="log4net" Version="2.0.17" />
     <Content Include="../../.env.production">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

@@ -9,7 +9,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.1" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.3" />
+    <ProjectReference Include="../../Services/CommonServiceLib/CommonServiceLib.csproj" />
+    <ProjectReference Include="../CommonWebServiceLib/CommonWebServiceLib.csproj" />
     <ProjectReference Include="../../Services/SequencerService/SequencerService.csproj" />
     <Content Include="../../.env.production">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

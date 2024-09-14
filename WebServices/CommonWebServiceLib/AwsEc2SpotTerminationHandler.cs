@@ -1,21 +1,16 @@
-using System;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using log4net;
 
-public class SpotTerminationHandler : IHostedService, IDisposable
+public class AwsEc2SpotTerminationHandler : IHostedService, IDisposable
 {
     private const string url = "http://169.254.169.254/latest/meta-data/spot/termination-time";
-    private readonly ILogger<SpotTerminationHandler> _logger;
+    private static readonly ILog logger = LogManager.GetLogger(typeof(AwsEc2SpotTerminationHandler));
     private readonly IHostApplicationLifetime _appLifetime;
     private readonly HttpClient _httpClient;
     private Timer? _timer;
 
-    public SpotTerminationHandler(ILogger<SpotTerminationHandler> logger, IHostApplicationLifetime appLifetime)
+    public AwsEc2SpotTerminationHandler(IHostApplicationLifetime appLifetime)
     {
-        _logger = logger;
         _appLifetime = appLifetime;
         _httpClient = new HttpClient();
     }
@@ -33,22 +28,22 @@ public class SpotTerminationHandler : IHostedService, IDisposable
             var response = await _httpClient.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Spot instance termination notice received. Initiating graceful shutdown.");
+                logger.Warn("Spot instance termination notice received. Initiating graceful shutdown");
                 await GracefulShutdown();
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking for spot termination.");
+            logger.Error("Error checking for spot termination", ex);
         }
     }
 
     private async Task GracefulShutdown()
     {
         // Perform any cleanup or state saving operations here
-        _logger.LogInformation("Performing graceful shutdown tasks...");
+        logger.Info("Performing graceful shutdown tasks...");
         
-        await AdminService.Program.Shutdown();
+        await CommonServiceLib.Program.Shutdown();
         
         // Stop accepting new requests
         _appLifetime.StopApplication();

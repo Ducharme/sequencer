@@ -1,34 +1,15 @@
-using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using log4net;
 
 using CommonTypes;
 using DatabaseAccessLayer;
 using RedisAccessLayer;
-
-using log4net;
-using log4net.Config;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace SequencerService
 {
     public static class Program
     {
         private static readonly ILog logger = LogManager.GetLogger(typeof(Program));
-        private static readonly List<ServiceProvider> _sps = [];
-
-        public static void AssignEvents()
-        {
-            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
-        }
-
-        public static void ConfigureLogging()
-        {
-            GlobalContext.Properties["pid"] = Process.GetCurrentProcess().Id;
-            var dir = System.AppContext.BaseDirectory;
-            var file = Path.Combine(dir, "log4net.config");
-            XmlConfigurator.Configure(new FileInfo(file));
-            logger.Info("Application started");
-        }
 
         public static ServiceProvider ConfigureServices(IServiceCollection services)
         {
@@ -53,7 +34,6 @@ namespace SequencerService
             services.AddSingleton<ClientBase, ProcessedListToSequencedListListener>();
             services.AddSingleton<ISequencer, Sequencer>();
             var serviceProvider = services.BuildServiceProvider();
-            _sps.Add(serviceProvider);
             return serviceProvider;
         }
 
@@ -66,8 +46,8 @@ namespace SequencerService
 
         public static async Task Main(string[] args)
         {
-            AssignEvents();
-            ConfigureLogging();
+            CommonServiceLib.Program.AssignEvents();
+            CommonServiceLib.Program.ConfigureLogging();
 
             if (!EnvVarSetter.SetFromArgs(args, logger))
             {
@@ -78,45 +58,10 @@ namespace SequencerService
             }
 
             var serviceProvider = ConfigureServices(new ServiceCollection());
+            CommonServiceLib.Program.AddServiceProvider(serviceProvider);
             var ret = await Run(serviceProvider);
 
             logger.Info($"Application exiting with value {ret}");
-        }
-
-        private static async void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
-        {
-            Console.WriteLine($"Unhandled exception: {e.ExceptionObject}");
-            logger.Fatal($"Unhandled exception: {e.ExceptionObject}");
-            await Shutdown();
-            Environment.Exit(1);
-        }
-
-        private static async void CurrentDomain_ProcessExit(object? sender, System.EventArgs? e)
-        {
-            Console.WriteLine($"SIGTERM received. Shutting down gracefully");
-            logger.Warn($"SIGTERM received. Shutting down gracefully");
-            await Shutdown();
-            Environment.Exit(1);
-        }
-
-        public async static Task Shutdown()
-        {
-            if (_sps.Count > 0)
-            {
-                var sp = _sps.First();
-                var ppl = sp.GetService<ClientBase>();
-                if (ppl != null)
-                {
-                    ppl.StopListening();
-                    const int max = 30;
-                    int counter = 0;
-                    while (ppl.IsConnected && !ppl.IsExiting && counter < max)
-                    {
-                        await Task.Delay(100); // Wait for 100ms
-                    }
-                    ppl.Dispose();
-                }
-            }
         }
     }
 }

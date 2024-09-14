@@ -6,7 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.3" />
     <ProjectReference Include="../../SharedTypes/CommonTypes/CommonTypes.csproj" />
+    <ProjectReference Include="../../Services/CommonServiceLib/CommonServiceLib.csproj" />
+    <ProjectReference Include="../CommonWebServiceLib/CommonWebServiceLib.csproj" />
     <ProjectReference Include="../../Services/AdminService/AdminService.csproj" />
     <PackageReference Include="log4net" Version="2.0.17" />
   </ItemGroup>

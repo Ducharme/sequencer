@@ -1,6 +1,28 @@
 using log4net;
 using RedisAccessLayer;
 
+public static class HealthEnpoints
+{
+    public static void MapGet(WebApplication app)
+    {
+        app.MapGet("/healthz", async (RedisPingHealthCheck healthCheck) =>
+        {
+            return await healthCheck.CheckAsync();
+        });
+
+        app.MapGet("/healthc", (RedisCachedHealthCheck healthCheck) =>
+        {
+            int statusCode = healthCheck.CheckSync();
+            return Results.Text(statusCode.ToString());
+        });
+
+        app.MapGet("/healthd", (RedisDetailedHealthCheck healthCheck) =>
+        {
+            return healthCheck.CheckSync();
+        });
+    }
+}
+
 public abstract class RedisHealthCheckBase
 {
     protected readonly IRedisConnectionManager _rcm;
