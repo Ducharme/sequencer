@@ -43,7 +43,8 @@ namespace RedisAccessLayer
 
             var subscribed = false;
             var listen = Interlocked.Read(ref this.shouldListen);
-            while (listen == 1 && !subscribed)
+            var exiting = Interlocked.Read(ref this.isExiting);
+            while (listen == 1 && exiting == 0 && !subscribed)
             {
                 try
                 {
@@ -52,19 +53,33 @@ namespace RedisAccessLayer
                 }
                 catch (RedisTimeoutException)
                 {
-                    // https://stackexchange.github.io/StackExchange.Redis/Timeouts
-                    logger.Warn("Redis client encountered an error while subscribing");
-                    await Task.Delay(LongWaitTime);
-                    await rcm.Reconnect();
+                    listen = Interlocked.Read(ref this.shouldListen);
+                    exiting = Interlocked.Read(ref this.isExiting);
+                    if (listen == 1 && exiting == 0)
+                    {
+                        // https://stackexchange.github.io/StackExchange.Redis/Timeouts
+                        logger.Warn("Redis client encountered a timeout while subscribing, waiting to reconnect");
+                        await Task.Delay(LongWaitTime);
+                        await rcm.Reconnect();
+                    }
+                    else
+                    {
+                        logger.Warn("Redis client encountered a timeout while subscribing, pending to exit");
+                    }
                 }
                 catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisConnectionException || ex is RedisException)
                 {
-                    logger.Warn("Redis client encountered an error while subscribing");
-                    await Task.Delay(LongWaitTime);
-                }
-                finally
-                {
                     listen = Interlocked.Read(ref this.shouldListen);
+                    exiting = Interlocked.Read(ref this.isExiting);
+                    if (listen == 1 && exiting == 0)
+                    {
+                        logger.Warn("Redis client encountered an error while subscribing, waiting to reconnect");
+                        await Task.Delay(LongWaitTime);
+                    }
+                    else
+                    {
+                        logger.Warn("Redis client encountered an error while subscribing, pending to exit");
+                    }
                 }
             }
 
@@ -165,22 +180,35 @@ namespace RedisAccessLayer
                         isLeader = false;
                         await Task.Delay(WaitTime);
                     }
+                    listen = Interlocked.Read(ref this.shouldListen);
                 }
                 catch (RedisTimeoutException)
                 {
-                    // https://stackexchange.github.io/StackExchange.Redis/Timeouts
-                    logger.Warn("Redis client encountered an error while listening");
-                    await Task.Delay(LongWaitTime);
-                    await rcm.Reconnect();
+                    listen = Interlocked.Read(ref this.shouldListen);
+                    if (listen == 1)
+                    {
+                        // https://stackexchange.github.io/StackExchange.Redis/Timeouts
+                        logger.Warn("Redis client encountered a timeout while listening, waiting to reconnect");
+                        await Task.Delay(LongWaitTime);
+                        await rcm.Reconnect();
+                    }
+                    else
+                    {
+                        logger.Warn("Redis client encountered a timeout while listening, pending to exit");
+                    }
                 }
                 catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisConnectionException || ex is RedisException) // Error with RedisCommandException should exit
                 {
-                    logger.Warn("Redis client encountered an error while listening");
-                    await Task.Delay(LongWaitTime);
-                }
-                finally
-                {
                     listen = Interlocked.Read(ref this.shouldListen);
+                    if (listen == 1)
+                    {
+                        logger.Warn("Redis client encountered an error while listening, waiting to retry");
+                        await Task.Delay(LongWaitTime);
+                    }
+                    else
+                    {
+                        logger.Warn("Redis client encountered an error while listening, pending to exit");
+                    }
                 }
             }
             Interlocked.Exchange(ref this.isExiting, 1);

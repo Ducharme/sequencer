@@ -38,9 +38,31 @@ namespace RedisAccessLayer
             Interlocked.Exchange(ref this.shouldListen, 0);
         }
 
-        public virtual void Dispose()
+        public async virtual void Dispose()
         {
-            rcm.Dispose();
+            var listen = Interlocked.Read(ref this.shouldListen);
+            var exiting = Interlocked.Read(ref this.isExiting);
+            if (listen == 1)
+            {
+                StopListening();
+            }
+
+            if (listen == 0 && exiting == 0)
+            {
+                const int max = 30;
+                int counter = 0;
+                while (exiting == 0 && counter < max)
+                {
+                    await Task.Delay(100); // Wait for 100ms
+                    exiting = Interlocked.Read(ref this.isExiting);
+                }
+            }
+
+            exiting = Interlocked.Read(ref this.isExiting);
+            if (exiting == 1)
+            {
+                rcm.Dispose();
+            }
         }
     }
 }

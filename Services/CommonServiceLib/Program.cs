@@ -11,7 +11,7 @@ namespace CommonServiceLib
     public static class Program
     {
         private static readonly ILog logger = LogManager.GetLogger(typeof(Program));
-        private static readonly List<ServiceProvider> _sps = [];
+        private static readonly List<IServiceProvider> _sps = [];
 
         public static void AssignEvents()
         {
@@ -28,7 +28,7 @@ namespace CommonServiceLib
             logger.Info("Application started");
         }
 
-        public static void AddServiceProvider(ServiceProvider sp)
+        public static void AddServiceProvider(IServiceProvider sp)
         {
             _sps.Add(sp);
         }
@@ -43,8 +43,8 @@ namespace CommonServiceLib
 
         private static async void CurrentDomain_ProcessExit(object? sender, System.EventArgs? e)
         {
-            Console.WriteLine($"SIGTERM received. Shutting down gracefully");
-            logger.Warn($"SIGTERM received. Shutting down gracefully");
+            Console.WriteLine($"SIGTERM received, shutting down gracefully");
+            logger.Warn($"SIGTERM received, shutting down gracefully");
             await Shutdown();
             Environment.Exit(1);
         }

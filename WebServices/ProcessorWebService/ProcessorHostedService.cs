@@ -2,9 +2,9 @@ using PS=ProcessorService;
 
 public class ProcessorHostedService : BackgroundService
 {
-    private readonly ServiceProvider _sp;
+    private readonly IServiceProvider _sp;
 
-    public ProcessorHostedService(ServiceProvider sp)
+    public ProcessorHostedService(IServiceProvider sp)
     {
         _sp = sp;
     }

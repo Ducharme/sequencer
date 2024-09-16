@@ -28,14 +28,14 @@ namespace ProcessorService
             return serviceProvider;
         }
 
-        public async static Task<bool> Run(ServiceProvider serviceProvider)
+        public async static Task<bool> Run(IServiceProvider serviceProvider)
         {
             var rcv = serviceProvider.GetService<IProcessor>() ?? throw new NullReferenceException("IProcessor implementation could not be resolved");
             await rcv.ReceiveMessageAsync();
             return true;
         }
 
-            public static async Task Main(string[] args)
+        public static async Task Main(string[] args)
         {
             CommonServiceLib.Program.AssignEvents();
             CommonServiceLib.Program.ConfigureLogging();

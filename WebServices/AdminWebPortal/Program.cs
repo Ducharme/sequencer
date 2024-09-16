@@ -11,6 +11,7 @@ ILog logger = LogManager.GetLogger(typeof(Program));
 CommonServiceLib.Program.ConfigureLogging();
 
 var builder = WebApplication.CreateBuilder(args ?? []);
+//builder.Logging.AddProvider(new Log4NetProvider(logger));
 var serviceProvider = AS.Program.ConfigureServices(builder.Services);
 CommonServiceLib.Program.AddServiceProvider(serviceProvider);
 
@@ -42,6 +43,7 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
 app.MapRazorPages();
+
 
 var adm = app.Services.GetService<AS.IAdminManager>() ?? throw new NullReferenceException("IAdminManager implementation could not be resolved");
 

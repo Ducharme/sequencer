@@ -2,9 +2,9 @@ using SS=SequencerService;
 
 public class SequencerHostedService : BackgroundService
 {
-    private readonly ServiceProvider _sp;
+    private readonly IServiceProvider _sp;
 
-    public SequencerHostedService(ServiceProvider sp)
+    public SequencerHostedService(IServiceProvider sp)
     {
         _sp = sp;
     }

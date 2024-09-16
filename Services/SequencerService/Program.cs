@@ -37,7 +37,7 @@ namespace SequencerService
             return serviceProvider;
         }
 
-        public async static Task<bool> Run(ServiceProvider serviceProvider)
+        public async static Task<bool> Run(IServiceProvider serviceProvider)
         {
             var lsn = serviceProvider.GetService<ISequencer>() ?? throw new NullReferenceException("IListener implementation could not be resolved");
             await lsn.ReceiveMessageAsync();

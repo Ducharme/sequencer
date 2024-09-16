@@ -16,6 +16,7 @@ namespace RedisAccessLayer
         private readonly Dictionary<RedisChannel, Action<RedisChannel, RedisValue>> subscriptions = [];
         protected const CommandFlags DefaultCommandFlags = CommandFlags.DemandMaster;
 
+        protected volatile bool isDisposed = false;
         protected volatile bool isConnected = false;
         protected volatile bool hasError = false;
 
@@ -672,8 +673,16 @@ end";
         
         public void Dispose()
         {
-            logger.Debug($"Disposing connection");
-            Connection.Dispose();
+            if (isDisposed)
+            {
+                logger.Warn($"Connection already disposed, skipping");
+            }
+            else
+            {
+                logger.Debug($"Disposing connection");
+                Connection.Dispose();
+                isDisposed = true;
+            }
         }
     }
 }

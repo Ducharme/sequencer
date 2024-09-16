@@ -32,9 +32,9 @@ echo "Running time will be $RUNNING_WAIT_TIME_SEC seconds (Gen $TIME_GEN + Proc 
 . ./setConfigValues.sh
 . ./setEnvFileValues.sh
 . ./getContainerIP.sh
-export PGSQL_ENDPOINT=$(getContainerIP "local-postgres") && echo "PGSQL_ENDPOINT=$PGSQL_ENDPOINT"
+export PGSQL_ENDPOINT=$(getContainerIpFromImageName "local-postgres") && echo "PGSQL_ENDPOINT=$PGSQL_ENDPOINT"
 if [ -z "$PGSQL_ENDPOINT" ]; then echo "Container local-postgres is not running, exiting" && exit 1; fi
-export REDIS_ENDPOINT=$(getContainerIP "local-redis") && echo "REDIS_ENDPOINT=$REDIS_ENDPOINT"
+export REDIS_ENDPOINT=$(getContainerIpFromImageName "local-redis") && echo "REDIS_ENDPOINT=$REDIS_ENDPOINT"
 if [ -z "$PGSQL_ENDPOINT" ]; then echo "Container local-redis is not running, exiting" && exit 1; fi
 
 ADMIN_CONTAINER_HOST=localhost
