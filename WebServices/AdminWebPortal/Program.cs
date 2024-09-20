@@ -24,7 +24,7 @@ builder.Services.AddSingleton<RedisPingHealthCheck>();
 builder.Services.AddHostedService<GracefulShutdownService>();
 if (AwsEnvironmentDetector.IsRunningOnAWS())
 {
-    builder.Services.AddHostedService<AwsEc2SpotTerminationHandler>();
+    builder.Services.AddHostedService<AwsEc2TerminationHandler>();
 }
 var app = builder.Build();
 

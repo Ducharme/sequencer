@@ -16,6 +16,7 @@ namespace CommonTypes
         public Dictionary<string, long> MaxProcessedToSequencingSeq { get; }
         public Dictionary<string, long> MaxSequencingToSavedSeq { get; }
         public Dictionary<string, long> MaxSavedToSequencedSeq { get; }
+        public Dictionary<string, long> MaxProcessingToSequencedSeq { get; }
         public Dictionary<string, long> MaxCreatedToSequencedSeq { get; }
 
         private readonly List<MyMessageStats> stats;
@@ -37,6 +38,7 @@ namespace CommonTypes
             MaxProcessedToSequencingSeq = stats.GetSequenceAndMax(e => e.ProcessedToSequencingTime);
             MaxSequencingToSavedSeq = stats.GetSequenceAndMax(e => e.SequencingToSavedTime);
             MaxSavedToSequencedSeq = stats.GetSequenceAndMax(e => e.SavedToSequencedTime);
+            MaxProcessingToSequencedSeq = stats.GetSequenceAndMax(e => e.ProcessingToSequencedTime);
             MaxCreatedToSequencedSeq = stats.GetSequenceAndMax(e => e.CreatedToSequencedTime);
         }
 

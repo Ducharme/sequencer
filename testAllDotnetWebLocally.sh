@@ -81,9 +81,18 @@ curl -X POST -H "Content-Type: application/json" -d "{\"name\":\"$GROUP_NAME\", 
 echo ""
 sleep $RUNNING_WAIT_TIME_SEC
 
+# Determine the increment based on NB_MESSAGES
+if [ "$NB_MESSAGES" -le 1000 ]; then
+    increment=100
+elif [ "$NB_MESSAGES" -le 10000 ]; then
+    increment=1000
+elif [ "$NB_MESSAGES" -le 100000 ]; then
+    increment=10000
+else
+    increment=10000  # Default for larger numbers
+fi
 
 start=1
-increment=100
 end=$NB_MESSAGES
 while [ "$start" -lt "$end" ]; do
   echo "Stats from $((start)) to $((start+increment-1))"

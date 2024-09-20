@@ -44,7 +44,7 @@ namespace CommonServiceLib
         private static async void CurrentDomain_ProcessExit(object? sender, System.EventArgs? e)
         {
             Console.WriteLine($"SIGTERM received, shutting down gracefully");
-            logger.Warn($"SIGTERM received, shutting down gracefully");
+            logger.Info($"SIGTERM received, shutting down gracefully");
             await Shutdown();
             Environment.Exit(1);
         }

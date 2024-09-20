@@ -8,7 +8,6 @@ namespace CommonTypes
         public bool IsOrdered { get; }
         public long? BrokenAfter { get; }
         public long? BrokenSeq { get; }
-        public long[] Ordered { get; }
         public long[] Others { get; }
 
         public OrderingCheck(List<MyMessage> mms)
@@ -17,7 +16,6 @@ namespace CommonTypes
             FirstSeq = lst.First().Sequence;
             LastSeq = lst.Last().Sequence;
             IsOrdered = true;
-            var ordered = new List<long>();
             var others = new List<long>();
 
             long lastItemSeq = -1;
@@ -26,7 +24,6 @@ namespace CommonTypes
                 if (lastItemSeq < 0)
                 {
                     lastItemSeq = mm.Sequence;
-                    ordered.Add(mm.Sequence);
                 }
                 else
                 {
@@ -40,7 +37,6 @@ namespace CommonTypes
                     else
                     {
                         lastItemSeq = mm.Sequence;
-                        ordered.Add(mm.Sequence);
                     }
                 }
 
@@ -50,7 +46,6 @@ namespace CommonTypes
                 }
             }
 
-            Ordered = ordered.ToArray();
             Others = others.ToArray();
         }
     }
