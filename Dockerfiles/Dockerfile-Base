@@ -1,0 +1,7 @@
+ARG DD_TRACER_VERSION
+
+# Download dd-trace-dotnet
+FROM curlimages/curl:8.9.1
+ARG DD_TRACER_VERSION
+RUN if [ -z "${DD_TRACER_VERSION}" ]; then echo "Error: DD_TRACER_VERSION is not set or is empty" && exit 1; fi
+RUN curl -s -L -o datadog-dotnet-apm_amd64.deb https://github.com/DataDog/dd-trace-dotnet/releases/download/v${DD_TRACER_VERSION}/datadog-dotnet-apm_${DD_TRACER_VERSION}_amd64.deb

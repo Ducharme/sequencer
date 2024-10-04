@@ -1,5 +1,11 @@
 #!/bin/sh
 
+extractPortsAwk() {
+    app_dll=$1
+    ports=$(ps -eo command | grep -v "grep" | grep "dotnet $app_dll" | grep "urls" | awk -F: '{print $NF}')
+    echo "$ports"
+}
+
 getAvailablePorts() {
     start_port=$1
     count=$2

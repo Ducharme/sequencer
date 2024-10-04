@@ -114,6 +114,21 @@ namespace AdminService
             return await list_stream_manager.GetFullProcessedStream();
         }
 
+        public async Task<long> GetSequencedListMessagesCount(string name)
+        {
+            return await list_stream_manager.GetSequencedListMessagesCount();
+        }
+
+        public async Task<long> GetSequencedStreamMessagesCount(string name)
+        {
+            return await list_stream_manager.GetSequencedStreamMessagesCount();
+        }
+
+        public async Task<MyMessage?> GetSequencedStreamLastMessage(string name)
+        {
+            return await list_stream_manager.GetSequencedStreamLastMessage();
+        }
+
         public async Task<string> RedisServerInfos()
         {
             return await list_stream_manager.RedisServerInfos();

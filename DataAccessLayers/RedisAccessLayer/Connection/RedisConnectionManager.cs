@@ -38,6 +38,33 @@ else
     return nil
 end";
 
+    private const string ScriptBatchPendingToProcessing = @"
+local source = KEYS[1]
+local destination = KEYS[2]
+local replacementTime = ARGV[1]
+local batchSize = 10
+
+local results = {}
+local count = 0
+
+for i = 1, batchSize do
+    local value = redis.call('RPOP', source)
+    if value then
+        local updatedValue = string.gsub(value, ';0;0;0;0;0', ';' .. replacementTime .. ';0;0;0;0')
+        redis.call('LPUSH', destination, updatedValue)
+        table.insert(results, updatedValue)
+        count = count + 1
+    else
+        break
+    end
+end
+
+if count > 0 then
+    return results
+else
+    return nil
+end";
+
         public RedisConnectionManager(IRedisConfigurationFetcher cf, IConnectionMultiplexerWrapper cm)
         {
             ConfigurationFetcher = cf;
@@ -261,6 +288,43 @@ end";
             {
                 hasError = true;
                 logger.Error($"ListRightPopLeftPushListSetByIndexInTransactionAsync source={source} destination={destination} val={val} failed", ex);
+                throw;
+            }
+        }
+
+        public async Task<string[]> ListRightPopLeftPushListSetByIndexInTransactionBatchAsync(RedisKey source, RedisKey destination, long val)
+        {
+            try
+            {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ListRightPopLeftPushListSetByIndexInTransactionBatchAsync source={source} destination={destination} val={val}");
+                }
+                RedisResult result = await Database.ScriptEvaluateAsync(ScriptBatchPendingToProcessing, [source, destination], [val], DefaultCommandFlags);
+                hasError = false;
+                string[] response;
+                if (result.IsNull)
+                {
+                    response = [];
+                }
+                else
+                {
+                    var tmp = (string[]?)result;
+                    if (tmp == null)
+                    {
+                        response = [];
+                    }
+                    else
+                    {
+                        response = tmp;
+                    }
+                }
+                return response;
+            }
+            catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisCommandException || ex is RedisConnectionException || ex is RedisException)
+            {
+                hasError = true;
+                logger.Error($"ListRightPopLeftPushListSetByIndexInTransactionBatchAsync source={source} destination={destination} val={val} failed", ex);
                 throw;
             }
         }
@@ -615,6 +679,66 @@ end";
             {
                 hasError = true;
                 logger.Error($"LockReleaseAsync key={key} val={val} failed", ex);
+                throw;
+            }
+        }
+
+        public async Task<long> GetListMessagesCount(RedisKey key)
+        {
+            try
+            {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"GetListMessagesCount key={key}");
+                }
+                var response = await Database.ListLengthAsync(key, DefaultCommandFlags);
+                hasError = false;
+                return response;
+            }
+            catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisCommandException || ex is RedisConnectionException || ex is RedisException)
+            {
+                hasError = true;
+                logger.Error($"GetListMessagesCount key={key} failed", ex);
+                throw;
+            }
+        }
+
+        public async Task<long> GetStreamMessagesCount(RedisKey key)
+        {
+            try
+            {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"GetStreamMessagesCount key={key}");
+                }
+                var response = await Database.StreamLengthAsync(key, DefaultCommandFlags);
+                hasError = false;
+                return response;
+            }
+            catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisCommandException || ex is RedisConnectionException || ex is RedisException)
+            {
+                hasError = true;
+                logger.Error($"GetStreamMessagesCount key={key} failed", ex);
+                throw;
+            }
+        }
+
+        public async Task<MyMessage?> GetStreamLastMessage(RedisKey key)
+        {
+            try
+            {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"GetStreamLastMessage key={key}");
+                }
+                var entries = await Database.StreamRangeAsync(key: key, minId: "-", maxId: "+", count: 1, messageOrder: Order.Descending, DefaultCommandFlags);
+                hasError = false;
+                return entries.Length > 0 ? entries[0].ToMyMessage() : null;
+            }
+            catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisCommandException || ex is RedisConnectionException || ex is RedisException)
+            {
+                hasError = true;
+                logger.Error($"GetStreamLastMessage key={key} failed", ex);
                 throw;
             }
         }

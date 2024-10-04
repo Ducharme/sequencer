@@ -34,7 +34,7 @@ Stats from 201 to 300
 ## Running docker containers
 
 ```
-sh buildDockerImages.sh
+sh buildAllDockerImages.sh
 sh testAllDockerLocally.sh
 ```
 

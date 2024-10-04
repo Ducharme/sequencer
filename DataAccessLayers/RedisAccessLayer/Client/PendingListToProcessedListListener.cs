@@ -91,31 +91,61 @@ namespace RedisAccessLayer
                     newMessageEvent.Reset();
                     var dtStart = DateTime.Now;
                     var processingAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                    var str = await rcm.ListRightPopLeftPushListSetByIndexInTransactionAsync(pendingListKey, processingListKey, processingAt);
+                    // var str = await rcm.ListRightPopLeftPushListSetByIndexInTransactionAsync(pendingListKey, processingListKey, processingAt);
+                    // var dtEnd = DateTime.Now;
+                    // if (!string.IsNullOrEmpty(str))
+                    // {
+                    //     lastReadHadvalue = true;
+                    //     MyMessage? mm = str.FromShortString();
+                    //     if (mm != null)
+                    //     {
+                    //         var elapsed = Math.Round(dtEnd.Subtract(dtStart).TotalMilliseconds, 2);
+                    //         logger.Info($"List {pendingListKey} contains message {str}, noValueCount={noValueCount}, elapsed={elapsed} ms");
+                    //         await handler(pendingListKey, str, mm); // NOTE: Processing could be done on another thread
+                    //     } else {
+                    //         logger.Warn($"List {pendingListKey} contains invalid message {str}, noValueCount={noValueCount}");
+                    //         logger.Debug($"List {processingListKey} is removing value {str}");
+                    //         var ret = await rcm.ListRemoveAsync(processingListKey, str);
+                    //         logger.Debug($"List {processingListKey} removed value {str}, count={ret}");
+                    //     }
+
+                    //     noValueCount = 0;
+                    // } else {
+                    //     logger.Debug($"ListRightPopLeftPushListSetByIndexInTransactionAsync received an empty response (shoudWait={shoudWait}, noValueCount={noValueCount}, pendingMessages={pendingMessages}, lastReadHadvalue={lastReadHadvalue})");
+                    //     lastReadHadvalue = false;
+                    //     Interlocked.Exchange(ref pendingMessages, 0);
+                    //     noValueCount += 1;
+                    // }
+
+                    var strs = await rcm.ListRightPopLeftPushListSetByIndexInTransactionBatchAsync(pendingListKey, processingListKey, processingAt);
                     var dtEnd = DateTime.Now;
-                    if (!string.IsNullOrEmpty(str))
+                    if (strs.Length > 0)
                     {
                         lastReadHadvalue = true;
-                        MyMessage? mm = str.FromShortString();
-                        if (mm != null)
+                        foreach (var str in strs)
                         {
-                            var elapsed = Math.Round(dtEnd.Subtract(dtStart).TotalMilliseconds, 2);
-                            logger.Info($"List {pendingListKey} contains message {str}, noValueCount={noValueCount}, elapsed={elapsed} ms");
-                            await handler(pendingListKey, str, mm); // NOTE: Processing could be done on another thread
-                        } else {
-                            logger.Warn($"List {pendingListKey} contains invalid message {str}, noValueCount={noValueCount}");
-                            logger.Debug($"List {processingListKey} is removing value {str}");
-                            var ret = await rcm.ListRemoveAsync(processingListKey, str);
-                            logger.Debug($"List {processingListKey} removed value {str}, count={ret}");
+                            MyMessage? mm = str.FromShortString();
+                            if (mm != null)
+                            {
+                                var elapsed = Math.Round(dtEnd.Subtract(dtStart).TotalMilliseconds, 2);
+                                logger.Info($"List {pendingListKey} contains message {str}, noValueCount={noValueCount}, elapsed={elapsed} ms");
+                                _ = Task.Run(async() => { try { await handler(pendingListKey, str, mm); } catch (Exception ex) { logger.Error($"Error processing message {str}", ex); } });
+                            } else {
+                                logger.Warn($"List {pendingListKey} contains invalid message {str}, noValueCount={noValueCount}");
+                                logger.Debug($"List {processingListKey} is removing value {str}");
+                                var ret = await rcm.ListRemoveAsync(processingListKey, str);
+                                logger.Debug($"List {processingListKey} removed value {str}, count={ret}");
+                            }
                         }
 
                         noValueCount = 0;
                     } else {
-                        logger.Debug($"ListRightPopLeftPushListSetByIndexInTransactionAsync received an empty response (shoudWait={shoudWait}, noValueCount={noValueCount}, pendingMessages={pendingMessages}, lastReadHadvalue={lastReadHadvalue})");
+                        logger.Debug($"ListRightPopLeftPushListSetByIndexInTransactionBatchAsync received an empty response (shoudWait={shoudWait}, noValueCount={noValueCount}, pendingMessages={pendingMessages}, lastReadHadvalue={lastReadHadvalue})");
                         lastReadHadvalue = false;
                         Interlocked.Exchange(ref pendingMessages, 0);
                         noValueCount += 1;
                     }
+
                     listen = Interlocked.Read(ref this.shouldListen);
                 }
                 catch (RedisTimeoutException)
@@ -214,11 +244,11 @@ namespace RedisAccessLayer
             var committed = await rcm.StreamAddListRemovePublishInTransactionAsync(processedStreamKey, mm.ToJson(), processingListKey, rv, ProcessedStreamChannel, rv);
             if (committed)
             {
-                logger.Info($"Stream {processedStreamKey} appended values {mm} then list {processingListKey} removed value {rv} in a transaction");
+                logger.Info($"Stream {processedStreamKey} appended values {mm} then list {processingListKey} removed its value in a transaction");
             }
             else
             {
-                logger.Warn($"Stream {processedStreamKey} failed to append values {mm} then list {processingListKey} failed to remove value {rv} in a transaction");
+                logger.Warn($"Stream {processedStreamKey} failed to append values {mm} then list {processingListKey} failed to remove its value in a transaction");
             }
             return committed;
         }

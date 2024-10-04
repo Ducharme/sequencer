@@ -2,13 +2,31 @@
 
 # docker login
 
-VERSION=0.0.11-dd
+BASE_VERSION=0.0.1
+MAIN_VERSION=0.0.23
+REPO_NAME=claudeducharme
 
-docker tag adminwebportal:latest claudeducharme/adminwebportal:$VERSION
-docker push claudeducharme/adminwebportal:$VERSION
+push_images() {
+    local image_list=$1
 
-docker tag processorservice:latest claudeducharme/processorservice:$VERSION
-docker push claudeducharme/processorservice:$VERSION
+    images=$(echo "$image_list" | tr -s '\r\n' ' ')
+    echo "$image_list" | while read image; do
 
-docker tag sequencerservice:latest claudeducharme/sequencerservice:$VERSION
-docker push claudeducharme/sequencerservice:$VERSION
+        image_name=$(echo "$image" | cut -d':' -f1) # Already prefixed by the repo anme
+        image_tag=$(echo "$image" | cut -d':' -f2)
+        echo "Checking if already exist on https://hub.docker.com/v2/repositories/$image_name/tags/$image_tag"
+        BASE_INFO=$(curl -s "https://hub.docker.com/v2/repositories/$image_name/tags/$image_tag")
+        if echo "$BASE_INFO" | grep -q "digest"; then
+            echo "Image $image already exists, skipping docker push"
+        else
+            echo "Pushing image $image"
+            docker push $image
+        fi
+    done
+}
+
+BASE_IMAGES=$(docker images --format "table {{.Repository}}:{{.Tag}}" | grep "$REPO_NAME/sequencer-base" | grep "$BASE_VERSION")
+MAIN_IMAGES=$(docker images --format "table {{.Repository}}:{{.Tag}}" | grep "$REPO_NAME/" | grep "$MAIN_VERSION")
+
+push_images "$BASE_IMAGES"
+push_images "$MAIN_IMAGES"

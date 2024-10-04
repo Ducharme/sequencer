@@ -434,11 +434,8 @@ namespace RedisAccessLayer
                 var entryId = kvp.Key;
                 var mm = kvp.Value;
                 var nves = mm.ToNameValueEntriesWithExtraString(extraKvp);
-                logger.Info($"Appending sequencing message streamEntryId {entryId} with sequence id {mm.Sequence} to {sequencedStreamKey}");
-
                 var str = mm.ToShortString() ?? string.Empty;
-                logger.Info($"Pushing sequencing message streamEntryId {entryId} with sequence id {mm.Sequence} to {sequencedListKey}");
-
+                logger.Info($"Appending sequencing message streamEntryId {entryId} with sequence id {mm.Sequence} to {sequencedStreamKey} and {sequencedListKey}");
                 lst.Add(new Tuple<string, NameValueEntry[]>(str, nves));
             }
 
@@ -453,11 +450,11 @@ namespace RedisAccessLayer
             {
                 LastProcessedSequenceId = highestSequence;
                 LastProcessedEntryId = highestEntryId;
-                logger.Info($"Transaction handling {allEntryIds} successfully committed with LastProcessedEntryId={LastProcessedEntryId} and LastProcessedSequenceId={LastProcessedSequenceId}");
+                logger.Info($"Transaction handling {orderedByEntryIds.Count} entries {allEntryIds} successfully committed with LastProcessedEntryId={LastProcessedEntryId} and LastProcessedSequenceId={LastProcessedSequenceId}");
             }
             else
             {
-                logger.Warn($"Transaction handling {allEntryIds} failed to commit keeping LastProcessedEntryId={LastProcessedEntryId} and LastProcessedSequenceId={LastProcessedSequenceId}");
+                logger.Warn($"Transaction handling {orderedByEntryIds.Count} entries {allEntryIds} failed to commit keeping LastProcessedEntryId={LastProcessedEntryId} and LastProcessedSequenceId={LastProcessedSequenceId}");
             }
             
             return new Tuple<bool, string, long>(committed, highestEntryId, highestSequence);

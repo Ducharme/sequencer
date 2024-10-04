@@ -19,6 +19,14 @@ namespace CommonTypes
         public Dictionary<string, long> MaxProcessingToSequencedSeq { get; }
         public Dictionary<string, long> MaxCreatedToSequencedSeq { get; }
 
+        public Dictionary<string, long> MinCreatedToProcessingSeq { get; }
+        public Dictionary<string, long> MinProcessingToProcessedSeq { get; }
+        public Dictionary<string, long> MinProcessedToSequencingSeq { get; }
+        public Dictionary<string, long> MinSequencingToSavedSeq { get; }
+        public Dictionary<string, long> MinSavedToSequencedSeq { get; }
+        public Dictionary<string, long> MinProcessingToSequencedSeq { get; }
+        public Dictionary<string, long> MinCreatedToSequencedSeq { get; }
+
         private readonly List<MyMessageStats> stats;
 
         public Stats(IEnumerable<MyMessage> mms)
@@ -29,7 +37,6 @@ namespace CommonTypes
             ProcessedToSequencingStats = GetStats(stats.Select(e => e.ProcessedToSequencingTime).ToList());
             SequencingToSavedStats = GetStats(stats.Select(e => e.SequencingToSavedTime).ToList());
             SavedToSequencedStats = GetStats(stats.Select(e => e.SavedToSequencedTime).ToList());
-
             ProcessingToSequencedStats = GetStats(stats.Select(e => e.ProcessingToSequencedTime).ToList());
             CreatedToSequencedStats = GetStats(stats.Select(e => e.CreatedToSequencedTime).ToList());
 
@@ -40,9 +47,17 @@ namespace CommonTypes
             MaxSavedToSequencedSeq = stats.GetSequenceAndMax(e => e.SavedToSequencedTime);
             MaxProcessingToSequencedSeq = stats.GetSequenceAndMax(e => e.ProcessingToSequencedTime);
             MaxCreatedToSequencedSeq = stats.GetSequenceAndMax(e => e.CreatedToSequencedTime);
+
+            MinCreatedToProcessingSeq = stats.GetSequenceAndMin(e => e.CreatedToProcessingTime);
+            MinProcessingToProcessedSeq = stats.GetSequenceAndMin(e => e.ProcessingToProcessedTime);
+            MinProcessedToSequencingSeq = stats.GetSequenceAndMin(e => e.ProcessedToSequencingTime);
+            MinSequencingToSavedSeq = stats.GetSequenceAndMin(e => e.SequencingToSavedTime);
+            MinSavedToSequencedSeq = stats.GetSequenceAndMin(e => e.SavedToSequencedTime);
+            MinProcessingToSequencedSeq = stats.GetSequenceAndMin(e => e.ProcessingToSequencedTime);
+            MinCreatedToSequencedSeq = stats.GetSequenceAndMin(e => e.CreatedToSequencedTime);
         }
 
-        private static Dictionary<string, double> GetStats(List<long> values)
+        public static Dictionary<string, double> GetStats(List<long> values)
         {
             var dic = new Dictionary<string, double>
             {
@@ -57,7 +72,7 @@ namespace CommonTypes
             return dic;
         }
 
-        private static double CalculatePercentile(List<long> values, double percentile)
+        public static double CalculatePercentile(List<long> values, double percentile)
         {
             if (values == null || values.Count == 0)
                 throw new ArgumentException("The input array must not be empty", nameof(values));

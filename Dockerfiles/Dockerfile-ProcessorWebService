@@ -1,0 +1,22 @@
+ARG PROJECT_NAME="ProcessorWebService"
+ARG SERVICE_FOLDER="WebServices"
+ARG BASE_IMAGE_ASPNET=sequencer-base-aspnet:latest
+ARG COMPILE_IMAGE=sequencer-compile:latest
+
+FROM ${COMPILE_IMAGE} AS compile-image
+ARG PROJECT_NAME
+ARG SERVICE_FOLDER
+RUN mkdir -p /app
+RUN dotnet publish ./$SERVICE_FOLDER/$PROJECT_NAME/$PROJECT_NAME.csproj -c Release -o /app
+
+# Build runtime image
+FROM ${BASE_IMAGE_ASPNET}
+ARG PROJECT_NAME
+ARG SERVICE_FOLDER
+RUN mkdir -p /app
+WORKDIR /app
+COPY --from=compile-image /app .
+COPY ./$SERVICE_FOLDER/$PROJECT_NAME/log4net-docker.config ./log4net.config
+RUN find . /app -name '.env.*' -type f -delete
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "/app/ProcessorWebService.dll"]

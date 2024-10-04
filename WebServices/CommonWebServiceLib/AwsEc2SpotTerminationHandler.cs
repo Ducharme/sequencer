@@ -10,14 +10,13 @@ public enum Ec2InstanceAction
 
 public class AwsEc2TerminationHandler : IHostedService, IDisposable
 {
-    private const string baseUrl = "http://169.254.169.254/latest";
-    private const string metaUrl = $"{baseUrl}/meta-data";
-    private const string toeknUrl = $"{baseUrl}/api/token";
+    private const string NotFound = "NotFound";
+    private const string Unauthorized = "Unauthorized";
     private static readonly ILog logger = LogManager.GetLogger(typeof(AwsEc2TerminationHandler));
     private readonly IHostApplicationLifetime _appLifetime;
     private readonly HttpClient _httpClient;
     private Timer? _timer;
-
+    
     public AwsEc2TerminationHandler(IHostApplicationLifetime appLifetime)
     {
         _appLifetime = appLifetime;
@@ -28,28 +27,6 @@ public class AwsEc2TerminationHandler : IHostedService, IDisposable
     {
         _timer = new Timer(CheckForTermination, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
         return Task.CompletedTask;
-    }
-
-    private static async Task<string> GetImdsv2Token(HttpClient client)
-    {
-        client.DefaultRequestHeaders.Add("X-aws-ec2-metadata-token-ttl-seconds", "21600");
-        var response = await client.PutAsync(toeknUrl, null);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync();
-    }
-
-    private static async Task<string> GetMetadata(HttpClient client, string token, string path)
-    {
-        try
-        {
-            client.DefaultRequestHeaders.Add("X-aws-ec2-metadata-token", token);
-            var response = await client.GetAsync($"{metaUrl}/{path}");
-            return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync() : response.StatusCode.ToString();
-        }
-        catch (HttpRequestException)
-        {
-            return string.Empty; // No action scheduled
-        }
     }
 
     private bool IsStopping(string action)
@@ -63,24 +40,25 @@ public class AwsEc2TerminationHandler : IHostedService, IDisposable
         try
         {
             using var client = new HttpClient();
-            var token = await GetImdsv2Token(client);
+            var token = await AwsEc2MetadataReader.GetImdsv2Token(client);
+            var spotMetadata = await AwsEc2MetadataReader.GetSpotMetadata(client, token);
 
             // Returns "stop" or "hibernate" or "terminate" when the instance is scheduled to go
-             var spotInstanceAction = await GetMetadata(client, token, "spot/instance-action");
-            logger.Info($"spot/instance-action is {spotInstanceAction}");
-            if (IsStopping(spotInstanceAction))
+            const string iaKey = AwsEc2MetadataReader.MetadataSpotInstanceActionKey;
+            var ia = spotMetadata.ContainsKey(iaKey) ? spotMetadata[iaKey] : string.Empty;
+            if (ia.Length > 0 && IsStopping(ia))
             {
-                logger.Warn("Spot instance termination notice received. Initiating graceful shutdown");
+                logger.Warn($"Spot instance {iaKey} is {ia}. Initiating graceful shutdown");
                 await GracefulShutdown();
                 return;
             }
 
-            // Get termination time of sot instance
-            var spotTerminationTime = await GetMetadata(client, token, "spot/termination-time");
-            logger.Info($"spot/termination-time is {spotTerminationTime}");
-            if (spotTerminationTime.Length > 0)
+            // Get termination time of spot instance
+            const string ttKey = AwsEc2MetadataReader.MetadataSpotTerminationTimeKey;
+            var tt = spotMetadata.ContainsKey(ttKey) ? spotMetadata[ttKey] : string.Empty;
+            if (tt.Length > 0 && tt != NotFound && tt != Unauthorized)
             {
-                logger.Warn("Spot instance termination time received. Initiating graceful shutdown");
+                logger.Warn($"Spot instance {ttKey} received is {tt}. Initiating graceful shutdown");
                 await GracefulShutdown();
             }
         }

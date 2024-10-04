@@ -20,6 +20,10 @@ namespace RedisAccessLayer
         Task<bool?> DeleteProcessedStream();
         Task<bool?> DeleteProcessedList();
 
+        Task<long> GetSequencedListMessagesCount();
+        Task<long> GetSequencedStreamMessagesCount();
+        Task<MyMessage?> GetSequencedStreamLastMessage();
+
         Task<string> RedisServerInfos();
         Task<TimeSpan> Ping();
     }

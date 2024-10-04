@@ -1,0 +1,8 @@
+# Build temp image with sdk
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+ARG PROJECT_NAME
+RUN mkdir -p /sln
+WORKDIR /sln
+COPY . .
+RUN dotnet restore
+RUN dotnet build --no-restore -c Release

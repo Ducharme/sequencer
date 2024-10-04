@@ -5,7 +5,7 @@ FOLDER=$(pwd)
 build_arg_1=$1 # --progress=plain
 build_arg_2=$2 # --no-cache 
 
-echo "Building arguments echo $build_arg_1 $build_arg_2"
+echo "Building arguments: $build_arg_1 $build_arg_2"
 
 echo "Building ProcessorService image..."
 cd $FOLDER/Services/ProcessorService/

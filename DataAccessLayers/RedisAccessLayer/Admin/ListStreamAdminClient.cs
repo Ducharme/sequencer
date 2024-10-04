@@ -174,6 +174,24 @@ namespace RedisAccessLayer
             return await rcm.KeyDeleteAsync(listKey);
         }
 
+        public async Task<long> GetSequencedListMessagesCount()
+        {
+            logger.Info($"Getting list messages count {sequencedListKey}");
+            return await rcm.GetListMessagesCount(sequencedListKey);
+        }
+
+        public async Task<long> GetSequencedStreamMessagesCount()
+        {
+            logger.Info($"Getting stream messages count {sequencedStreamKey}");
+            return await rcm.GetStreamMessagesCount(sequencedStreamKey);
+        }
+
+        public async Task<MyMessage?> GetSequencedStreamLastMessage()
+        {
+            logger.Info($"Getting stream last message count {sequencedStreamKey}");
+            return await rcm.GetStreamLastMessage(sequencedStreamKey);
+        }
+
         public async Task<string> RedisServerInfos()
         {
             logger.Info("Logging servers commands");

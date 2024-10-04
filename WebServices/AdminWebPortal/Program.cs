@@ -22,7 +22,7 @@ builder.Services.AddSingleton<RedisCachedHealthCheck>();
 builder.Services.AddSingleton<RedisDetailedHealthCheck>();
 builder.Services.AddSingleton<RedisPingHealthCheck>();
 builder.Services.AddHostedService<GracefulShutdownService>();
-if (AwsEnvironmentDetector.IsRunningOnAWS())
+if (AwsEnvironmentDetector.IsRunningOnAWS() && AwsEnvironmentDetector.IsSpotInstance())
 {
     builder.Services.AddHostedService<AwsEc2TerminationHandler>();
 }
@@ -77,6 +77,26 @@ app.MapDelete("/list/sequenced/messages", async (string name) => {
     var rlm = app.Services.GetService<IListStreamAdminClient>() ?? throw new NullReferenceException("IListStreamAdminClient implementation could not be resolved");
     await adm.DeleteLists(name);
     return Results.Ok(name);
+});
+
+app.MapGet("/list/sequenced/count", async (string name) => {
+    var rlm = app.Services.GetService<IListStreamAdminClient>() ?? throw new NullReferenceException("IListStreamAdminClient implementation could not be resolved");
+    var count = await adm.GetSequencedListMessagesCount(name);
+    return Results.Text(count.ToString(), "text/html", System.Text.Encoding.UTF8, 200);
+});
+
+app.MapGet("/stream/sequenced/count", async (string name) => {
+    var rlm = app.Services.GetService<IListStreamAdminClient>() ?? throw new NullReferenceException("IListStreamAdminClient implementation could not be resolved");
+    var count = await adm.GetSequencedStreamMessagesCount(name);
+    return Results.Text(count.ToString(), "text/html", System.Text.Encoding.UTF8, 200);
+});
+
+app.MapGet("/stream/sequenced/last", async (string name) => {
+    var rlm = app.Services.GetService<IListStreamAdminClient>() ?? throw new NullReferenceException("IListStreamAdminClient implementation could not be resolved");
+    var msg = await adm.GetSequencedStreamLastMessage(name);
+    return msg == null
+        ? Results.Json(new {}, statusCode: StatusCodes.Status200OK, contentType: "application/json")
+        : Results.Json(msg, statusCode: StatusCodes.Status200OK, contentType: "application/json");
 });
 
 app.MapPost("/list/sequencer/messages", async (GenerateMessagesRequest request) => {
@@ -165,47 +185,70 @@ app.MapGet("/stream/processed/messages", async (string name) => {
 app.MapGet("/list/stats", async ([FromQuery] string name, [FromQuery] long start = 1, [FromQuery] long count = -1) => {
     logger.Info($"Called /list/stats with name={name}, start={start}, count={count}");
 
-    if (start < 1)
+    try
     {
-        return Results.BadRequest("start must be 1 or greater");
-    }
-
-    if (count == 0)
-    {
-        return Results.Json(new {});
-    }
-
-    var rlm = app.Services.GetService<IListStreamAdminClient>() ?? throw new NullReferenceException("IListStreamAdminClient implementation could not be resolved");
-    var lst = await adm.GetAllMessagesFromSequencedList(name); // New messages are at the beginning by default
-    if (lst.Count == 0)
-    {
-        return Results.Json(new {});
-    }
-
-    if (count < 0)
-    {
-        count = lst.Count;
-    }
-
-    var filtered = new List<MyMessage>();
-    for (long i=start; i < start + count; i++)
-    {
-        var mm = lst.FirstOrDefault(item => item.Sequence == i);
-        if (mm != null)
+        var res = new MessagesFromSequencedListResult(name, start, count);
+        if (res.Result != null)
         {
-            filtered.Add(mm);
+            return Results.Json(res.Result);
         }
-    }
 
-    if (filtered.Count == 0)
+        var filtered = await res.Fetch(adm);
+        if (res.Result != null)
+        {
+            return Results.Json(res.Result);
+        }
+
+        var stats = new Stats(filtered);
+        var check = new OrderingCheck(filtered);
+        var obj = new { start, filtered.Count, stats, check };
+        return Results.Json(obj);
+    }
+    catch (Exception ex)
     {
-        return Results.Json(new {});
+        logger.Error($"Failed /list/stats with name={name}, start={start}, count={count}", ex);
+        var problemDetails = new ProblemDetails
+        {
+            Status = StatusCodes.Status500InternalServerError,
+            Title = "An error occurred",
+            Detail = ex.Message
+        };
+        return Results.Problem(problemDetails);
     }
+});
 
-    var stats = new Stats(filtered);
-    var check = new OrderingCheck(filtered);
-    var obj = new { start, filtered.Count, stats, check };
-    return Results.Json(obj);
+app.MapGet("/list/perfs", async ([FromQuery] string name, [FromQuery] long start = 1, [FromQuery] long count = -1) => {
+    logger.Info($"Called /list/perfs with name={name}, start={start}, count={count}");
+
+    try
+    {
+        var res = new MessagesFromSequencedListResult(name, start, count);
+        if (res.Result != null)
+        {
+            return Results.Json(res.Result);
+        }
+
+        var filtered = await res.Fetch(adm);
+        if (res.Result != null)
+        {
+            return Results.Json(res.Result);
+        }
+
+        var perfs = new Perfs(filtered);
+        var obj = new { start, filtered.Count, perfs };
+        return Results.Json(obj);
+    }
+    catch (Exception ex)
+    {
+        logger.Error($"Failed /list/perfs with name={name}, start={start}, count={count}", ex);
+        var problemDetails = new ProblemDetails
+        {
+            Status = StatusCodes.Status500InternalServerError,
+            Title = "An error occurred",
+            Detail = ex.Message
+        };
+        return Results.Problem(problemDetails);
+    }
 });
 
 app.MapGet("/redis/infos", async () => {

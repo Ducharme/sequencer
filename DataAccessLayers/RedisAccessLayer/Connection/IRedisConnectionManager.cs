@@ -19,6 +19,7 @@ namespace RedisAccessLayer
         Task<string> ListGetByIndexAsync(RedisKey key, long index);
         Task<bool> KeyDeleteAsync(RedisKey key);
         Task<string> ListRightPopLeftPushListSetByIndexInTransactionAsync(RedisKey source, RedisKey destination, long val);
+        Task<string[]> ListRightPopLeftPushListSetByIndexInTransactionBatchAsync(RedisKey source, RedisKey destination, long val);
         Task<bool> ListLeftPushPublishInTransactionAsync(RedisKey key, RedisValue val, RedisChannel publishChannel, RedisValue publishValue);
         Task<bool> ListLeftPushPublishInTransactionAsync(RedisKey key, IEnumerable<MyMessage> mms, RedisChannel publishChannel, RedisValue publishValue);
         Task<long> ListRemoveAsync(RedisKey key, RedisValue val);
@@ -34,6 +35,11 @@ namespace RedisAccessLayer
         Task<bool> LockReleaseAsync(RedisKey key, RedisValue val);
         Task<bool> StreamAddListRemovePublishInTransactionAsync(RedisKey streamAddKey, RedisValue streamAddVal, string listRemoveKey, RedisValue listRemoveVal, RedisChannel publishChannel, RedisValue publishValue);
         Task<bool> StreamAddListLeftPushStreamDeletePublishInTransactionAsync(RedisKey streamAddKey, RedisKey listLeftPushKey, List<Tuple<string, NameValueEntry[]>> values, RedisKey streamDeleteKey, RedisValue[] streamDeleteValues, RedisChannel publishChannel, RedisValue publishValue);
+
+         Task<long> GetListMessagesCount(RedisKey key);
+        Task<long> GetStreamMessagesCount(RedisKey key);
+        Task<MyMessage?> GetStreamLastMessage(RedisKey key);
+
         Task<string> ServerInfos();
         Task<TimeSpan> Ping();
     }

@@ -1,0 +1,19 @@
+ARG BASE_IMAGE=sequencer-base:latest
+ARG RUNTIME_IMAGE=mcr.microsoft.com/dotnet/runtime:8.0
+
+FROM ${BASE_IMAGE} AS base-image
+
+# Build runtime image
+FROM ${RUNTIME_IMAGE}
+# Datadog: Copy and install/enable the Tracer
+COPY --from=base-image /home/curl_user/datadog-dotnet-apm_amd64.deb .
+# Check if the file exists and is at least 1 MB
+RUN if [ ! -f ./datadog-dotnet-apm_amd64.deb ] || [ $(stat -c%s "./datadog-dotnet-apm_amd64.deb") -lt 1048576 ]; then \
+        echo "Error: ./datadog-dotnet-apm_amd64.deb does not exist or is smaller than 1 MB"; \
+        exit 1; \
+    else \
+        echo "File ./datadog-dotnet-apm_amd64.deb exists and is at least 1 MB"; \
+    fi
+RUN mkdir -p /opt/datadog && mkdir -p /var/log/datadog \
+    && dpkg -i ./datadog-dotnet-apm_amd64.deb \
+    && rm ./datadog-dotnet-apm_amd64.deb

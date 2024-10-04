@@ -35,7 +35,12 @@ curl -X GET http://localhost:5000/list/processed/messages?name=poc
 curl -X GET http://localhost:5000/stream/pending/messages?name=poc
 curl -X GET http://localhost:5000/stream/processed/messages?name=poc
 curl -X GET http://localhost:5000/list/stats?name=poc
+curl -X GET http://localhost:5000/list/perfs?name=poc
 #curl -X GET http://localhost:5000/database/messages?name=poc
+curl -X GET http://localhost:5000/list/sequenced/count?name=poc
+curl -X GET http://localhost:5000/stream/sequenced/count?name=poc
+curl -X GET http://localhost:5000/stream/sequenced/last?name=poc
+
 ```
 
 ## Docker
