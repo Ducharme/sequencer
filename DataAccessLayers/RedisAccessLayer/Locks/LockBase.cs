@@ -25,5 +25,10 @@ namespace RedisAccessLayer
         public TimeSpan LockExpiry { get { return lockExpiry; } }
         public TimeSpan RemainingLockTime { get { return lockAcquisitionTime.Add(lockExpiry) - DateTime.UtcNow; } }
         public bool IsLockAcquired => lockAcquisitionTime != DateTime.MinValue && RemainingLockTime > TimeSpan.Zero;
+
+        public string DisplayDateTime(DateTime dt)
+        {
+            return dt.ToString("yyyy/MM/dd-HH:mm:ss.fff");
+        }
     }
 }

@@ -1,9 +1,10 @@
 #!/bin/sh
 
-BASE_VERSION=0.0.1
-MAIN_VERSION=0.0.23
-DOTNET_RUNTIME_VERSION=8.0
-DOTNET_ASPNET_VERSION=8.0
+BASE_VERSION=0.0.2
+MAIN_VERSION=0.0.25
+DOTNET_SDK_VERSION=8.0.402-bookworm-slim
+DOTNET_RUNTIME_VERSION=8.0.8-bookworm-slim
+DOTNET_ASPNET_VERSION=8.0.8-bookworm-slim
 DD_TRACER_VERSION=3.3.1
 REPO_NAME=claudeducharme
 #DD_TRACER_VERSION=$(curl -s https://api.github.com/repos/DataDog/dd-trace-dotnet/releases/latest | grep tag_name | cut -d '"' -f 4 | cut -c2-)
@@ -87,8 +88,8 @@ RUNTIME_IMAGE="mcr.microsoft.com/dotnet/runtime:$DOTNET_RUNTIME_VERSION"
 RUNTIME_DEP_TAG="runtime$DOTNET_RUNTIME_VERSION-datadog$DD_TRACER_VERSION"
 RUNTIME_IMAGE_NAME="sequencer-base-runtime"
 RUNTIME_IMAGE_TAG="$BASE_VERSION-$RUNTIME_DEP_TAG"
-echo "check_and_pull_or_build_image $RUNTIME_IMAGE_NAME $RUNTIME_IMAGE_TAG ./Dockerfiles/Dockerfile-Base-Runtime BASE_IMAGE=$BASE_IMAGE_NAME:$BASE_IMAGE_TAG"
-check_and_pull_or_build_image "$RUNTIME_IMAGE_NAME" "$RUNTIME_IMAGE_TAG" "./Dockerfiles/Dockerfile-Base-Runtime" "BASE_IMAGE=$BASE_IMAGE_NAME:$BASE_IMAGE_TAG"
+echo "check_and_pull_or_build_image $RUNTIME_IMAGE_NAME $RUNTIME_IMAGE_TAG ./Dockerfiles/Dockerfile-Base-Runtime BASE_IMAGE=$BASE_IMAGE_NAME:$BASE_IMAGE_TAG RUNTIME_IMAGE=$RUNTIME_IMAGE"
+check_and_pull_or_build_image "$RUNTIME_IMAGE_NAME" "$RUNTIME_IMAGE_TAG" "./Dockerfiles/Dockerfile-Base-Runtime" "BASE_IMAGE=$BASE_IMAGE_NAME:$BASE_IMAGE_TAG RUNTIME_IMAGE=$RUNTIME_IMAGE"
 
 ASPNET_IMAGE="mcr.microsoft.com/dotnet/aspnet:$DOTNET_ASPNET_VERSION"
 ASPNET_DEP_TAG="aspnet$DOTNET_ASPNET_VERSION-datadog$DD_TRACER_VERSION"
@@ -101,9 +102,13 @@ check_and_pull_or_build_image "$IMAGE_NAME_ASPNET" "$ASPNET_IMAGE_TAG" "./Docker
 # sequencer-compile is always rebuilt to account for any change in code files or scritps
 COMPILE_IMAGE_NAME=sequencer-compile
 echo "Handling $COMPILE_IMAGE_NAME..."
-docker build -f ./Dockerfiles/Dockerfile-Compile -t $COMPILE_IMAGE_NAME:$MAIN_VERSION $build_arg_1 $build_arg_2 .
+SDK_IMAGE="mcr.microsoft.com/dotnet/sdk:$DOTNET_SDK_VERSION"
+SDK_DEP_TAG="$DOTNET_SDK_VERSION"
+COMPILE_IMAGE_TAG=$MAIN_VERSION-$SDK_DEP_TAG
+SDK_COMPILE_ARGS="--build-arg BASE_IMAGE=$SDK_IMAGE $build_arg_1 $build_arg_2"
+docker build -f ./Dockerfiles/Dockerfile-Compile -t $COMPILE_IMAGE_NAME:$COMPILE_IMAGE_TAG $SDK_COMPILE_ARGS .
 
-BUILD_APSNET_ARGS="--build-arg BASE_IMAGE_ASPNET=$IMAGE_NAME_ASPNET:$ASPNET_IMAGE_TAG --build-arg COMPILE_IMAGE=$COMPILE_IMAGE_NAME:$MAIN_VERSION $build_arg_1 $build_arg_2"
+BUILD_APSNET_ARGS="--build-arg BASE_IMAGE_ASPNET=$IMAGE_NAME_ASPNET:$ASPNET_IMAGE_TAG --build-arg COMPILE_IMAGE=$COMPILE_IMAGE_NAME:$COMPILE_IMAGE_TAG $build_arg_1 $build_arg_2"
 echo "Handling AdminWebPortal..."
 docker build -f ./Dockerfiles/Dockerfile-AdminWebPortal -t "adminwebportal:latest" -t "claudeducharme/adminwebportal:$MAIN_VERSION-$ASPNET_DEP_TAG" $BUILD_APSNET_ARGS .
 echo "Handling ProcessorWebService..."
@@ -111,7 +116,7 @@ docker build -f ./Dockerfiles/Dockerfile-ProcessorWebService -t "processorwebser
 echo "Handling SequencerWebService..."
 docker build -f ./Dockerfiles/Dockerfile-SequencerWebService -t "sequencerwebservice:latest" -t "claudeducharme/sequencerwebservice:$MAIN_VERSION-$ASPNET_DEP_TAG" $BUILD_APSNET_ARGS .
 
-BUILD_RUNTIME_ARGS="--build-arg BASE_IMAGE_RUNTIME=$RUNTIME_IMAGE_NAME:$RUNTIME_IMAGE_TAG --build-arg COMPILE_IMAGE=$COMPILE_IMAGE_NAME:$MAIN_VERSION $build_arg_1 $build_arg_2"
+BUILD_RUNTIME_ARGS="--build-arg BASE_IMAGE_RUNTIME=$RUNTIME_IMAGE_NAME:$RUNTIME_IMAGE_TAG --build-arg COMPILE_IMAGE=$COMPILE_IMAGE_NAME:$COMPILE_IMAGE_TAG $build_arg_1 $build_arg_2"
 echo "Handling ProcessorService..."
 docker build -f ./Dockerfiles/Dockerfile-ProcessorService -t "processorservice:latest" -t "claudeducharme/processorservice:$MAIN_VERSION-$RUNTIME_DEP_TAG" $BUILD_RUNTIME_ARGS .
 echo "Handling SequencerService..."

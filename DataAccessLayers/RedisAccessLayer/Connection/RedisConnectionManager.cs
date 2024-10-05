@@ -1,5 +1,6 @@
 using CommonTypes;
 using log4net;
+using Newtonsoft.Json;
 using StackExchange.Redis;
 
 namespace RedisAccessLayer
@@ -22,6 +23,7 @@ namespace RedisAccessLayer
 
         private static readonly ILog logger = LogManager.GetLogger(typeof(RedisConnectionManager));
         private static readonly ILog loggerRedis = LogManager.GetLogger("StackExchange.Redis");
+        private const int ScriptBatchSize = 25;
 
         private const string ScriptPendingToProcessing = @"
 local source = KEYS[1]
@@ -38,13 +40,13 @@ else
     return nil
 end";
 
-    private const string ScriptBatchPendingToProcessing = @"
+    private static readonly string ScriptBatchPendingToProcessing = $@"
 local source = KEYS[1]
 local destination = KEYS[2]
 local replacementTime = ARGV[1]
-local batchSize = 10
+local batchSize = {ScriptBatchSize}
 
-local results = {}
+local results = {{}}
 local count = 0
 
 for i = 1, batchSize do
@@ -504,6 +506,40 @@ end";
             }
         }
 
+        private const string StreamAddListLeftPushStreamDeletePublishInTransactionScript = @"
+local streamAddKey = KEYS[1]
+local listLeftPushKey = KEYS[2]
+local streamDeleteKey = KEYS[3]
+local publishChannel = KEYS[4]
+
+local valuesCount = tonumber(ARGV[1])
+local publishValue = ARGV[2]
+
+-- Process StreamAdd and ListLeftPush
+for i = 1, valuesCount do
+    local listValue = ARGV[2 + (i-1) * 2 + 1]
+    local streamEntries = cjson.decode(ARGV[2 + (i-1) * 2 + 2])
+    local args = {'*'}
+    for k, v in pairs(streamEntries) do
+        table.insert(args, k)
+        table.insert(args, v)
+    end
+    redis.call('XADD', streamAddKey, unpack(args))
+    redis.call('LPUSH', listLeftPushKey, listValue)
+end
+
+-- Process StreamDelete
+local deleteStartIndex = 3 + valuesCount * 2
+local deleteCount = tonumber(ARGV[deleteStartIndex])
+for i = 1, deleteCount do
+    redis.call('XDEL', streamDeleteKey, ARGV[deleteStartIndex + i])
+end
+
+-- Publish
+redis.call('PUBLISH', publishChannel, publishValue)
+
+return 'OK'";
+
         public async Task<bool> StreamAddListLeftPushStreamDeletePublishInTransactionAsync(RedisKey streamAddKey, RedisKey listLeftPushKey, List<Tuple<string, NameValueEntry[]>> values, RedisKey streamDeleteKey, RedisValue[] streamDeleteValues, RedisChannel publishChannel, RedisValue publishValue)
         {
             try
@@ -512,20 +548,20 @@ end";
                 {
                     logger.Debug($"StreamAddListLeftPushStreamDeletePublishInTransactionAsync streamAddKey={streamAddKey} listLeftPushKey={listLeftPushKey} values={values.Count} streamDeleteKey={streamDeleteKey} streamDeleteValues={streamDeleteValues.Length} publishChannel={publishChannel} publishValue={publishValue}");
                 }                
-                var transaction = Database.CreateTransaction();
-                #pragma warning disable CS4014
+
+                var keys = new RedisKey[] { streamAddKey, listLeftPushKey, streamDeleteKey, publishChannel.ToString() };
+                var args = new List<RedisValue> { values.Count, publishValue };
                 foreach (var tuple in values)
                 {
-                    transaction.StreamAddAsync(streamAddKey, tuple.Item2);
-                    transaction.ListLeftPushAsync(listLeftPushKey, tuple.Item1);
+                    args.Add(tuple.Item1);
+                    args.Add(JsonConvert.SerializeObject(tuple.Item2.ToDictionary(x => x.Name, x => x.Value)));
                 }
-                transaction.StreamDeleteAsync(streamDeleteKey, streamDeleteValues);
-                transaction.PublishAsync(publishChannel, publishValue);
-                #pragma warning restore CS4014
+                args.Add(streamDeleteValues.Length);
+                args.AddRange(streamDeleteValues);
 
-                var response = await transaction.ExecuteAsync(DefaultCommandFlags);
+                var result = await Database.ScriptEvaluateAsync(StreamAddListLeftPushStreamDeletePublishInTransactionScript, keys, args.ToArray(), DefaultCommandFlags);
                 hasError = false;
-                return response;
+                return result.ToString() == "OK";
             }
             catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisCommandException || ex is RedisConnectionException || ex is RedisException)
             {

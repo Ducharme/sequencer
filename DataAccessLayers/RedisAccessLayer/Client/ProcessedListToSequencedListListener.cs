@@ -1,7 +1,7 @@
-using CommonTypes;
-
 using log4net;
 using StackExchange.Redis;
+
+using CommonTypes;
 
 namespace RedisAccessLayer
 {
@@ -214,6 +214,24 @@ namespace RedisAccessLayer
             Interlocked.Exchange(ref this.isExiting, 1);
         }
 
+        public static List<long> FindMissingSequenceIds(List<long> incomplete)
+        {
+            // Generate a range of long from min to max (inclusive)
+            var fullRange = GenerateLongRange(incomplete);
+            // Find the long in the range that are not in the incomplete list
+            return fullRange.Except(incomplete).ToList();
+        }
+
+        private static IEnumerable<long> GenerateLongRange(List<long> incomplete)
+        {
+            long start = incomplete.Min();
+            long end = incomplete.Max();
+            for (long i = start; i <= end; i++)
+            {
+                yield return i;
+            }
+        }
+
         private async Task<string[]> SequenceEntries(Func<Dictionary<string, MyMessage>, Task<bool>> handler, string[] lastEntries, StreamEntry[] entries)
         {
             var thisEntries = entries.Select(e => e.Id.ToString()).ToArray();
@@ -231,22 +249,23 @@ namespace RedisAccessLayer
 
                 var ids = dic.Values.Select(kvp => kvp.Sequence).ToList();
                 var sequenceComplete = SequenceHelper.IsSequenceComplete(this.LastProcessedSequenceId, ids, logger);
-                var partialSequence = SequenceHelper.GetPartialSequence(this.LastProcessedSequenceId, ids, logger);
+                var partialSequence = sequenceComplete ? [] : SequenceHelper.GetPartialSequence(this.LastProcessedSequenceId, ids, logger);
                 if (logger.IsDebugEnabled)
                 {
-                    var idsJoined = string.Join(",", ids);
-                    var idsOrderedJoined = string.Join(",", ids.Order());
-                    var partialSequenceStr = partialSequence.Count > 0 ? string.Join(",", partialSequence) : "None";
-                    logger.Debug($"Sequence ids are {idsJoined} (ordered:{idsOrderedJoined}). IsSequenceComplete: {sequenceComplete} & GetPartialSequence:{partialSequenceStr}");
+                    if (sequenceComplete)
+                    {
+                        logger.Debug($"Sequence ids from {ids.Min()} to {ids.Max()} IsSequenceComplete: {sequenceComplete}");
+                    }
+                    else
+                    {
+                        var upTo = partialSequence.Count > 0 ? partialSequence.Max().ToString() : "N/A";
+                        var missingIds = FindMissingSequenceIds(ids);
+                        var missingIdsJoined = string.Join(",", missingIds.Order());
+                        logger.Debug($"Sequence ids are from {ids.Min()} to {ids.Max()} is ordered up to {upTo}). IsSequenceComplete: {sequenceComplete} & PartialSequence.Count {partialSequence.Count} & MissingSequenceIds:{missingIdsJoined}");
+                    }
                 }
 
-                // NOTE: Do not process if there is a missing message in the middle of the sequence of ids
-                if (sequenceComplete)
-                {
-                    var success = await handler(dic);
-                    sequencingStatus = success ? SequencingStatus.Succeeded : SequencingStatus.Failed;
-                }
-                else if (partialSequence.Count > 0)
+                if (!sequenceComplete && partialSequence.Count > 0)
                 {
                     foreach (var id in ids)
                     {
@@ -256,6 +275,12 @@ namespace RedisAccessLayer
                             dic.Remove(kvp.Key);
                         }
                     }
+                }
+
+                // NOTE: Do not process if there is a missing message in the middle of the sequence of ids
+                if (sequenceComplete || partialSequence.Count > 0)
+                {
+                    // TODO: When dic has more than 1000 entries, call syncLock.ExtendLock(defaultLockTime) and process by batch
                     var success = await handler(dic);
                     sequencingStatus = success ? SequencingStatus.Succeeded : SequencingStatus.Failed;
                 }
@@ -411,15 +436,23 @@ namespace RedisAccessLayer
             return kvp;
         }
 
+        private struct Batch
+        {
+            public Dictionary<string, MyMessage> Dic = [];
+
+            public Batch() { }
+        }
+
         public async Task<Tuple<bool, string, long>> FromProcessedToSequenced(Dictionary<string, MyMessage> dic)
         {
             var entryIdsToDouble = dic.Keys.Select(key => new KeyValuePair<string, double>(key, double.Parse(key.Replace(Dash, Dot))));
             var orderedByEntryIds = entryIdsToDouble.OrderBy(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+            var lowestEntryId = orderedByEntryIds.First();
             var highestEntryId = orderedByEntryIds.Last();
             var highestEntryIdSeq = dic[highestEntryId].Sequence;
             var orderedBySequence = dic.OrderBy(kvp => kvp.Value.Sequence);
-            var allEntryIds = string.Join(", ", orderedByEntryIds);
-            var highestSequence = dic.Max(kvp => kvp.Value.Sequence);
+            var lowestSequence = orderedBySequence.First().Value.Sequence;
+            var highestSequence = orderedBySequence.Last().Value.Sequence;
 
             long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             foreach (var kvp in dic)
@@ -450,11 +483,11 @@ namespace RedisAccessLayer
             {
                 LastProcessedSequenceId = highestSequence;
                 LastProcessedEntryId = highestEntryId;
-                logger.Info($"Transaction handling {orderedByEntryIds.Count} entries {allEntryIds} successfully committed with LastProcessedEntryId={LastProcessedEntryId} and LastProcessedSequenceId={LastProcessedSequenceId}");
+                logger.Info($"Transaction handling {orderedByEntryIds.Count} entries from {lowestEntryId}({lowestSequence}) to {highestEntryId}({highestSequence}) successfully committed with LastProcessedEntryId={LastProcessedEntryId} and LastProcessedSequenceId={LastProcessedSequenceId}");
             }
             else
             {
-                logger.Warn($"Transaction handling {orderedByEntryIds.Count} entries {allEntryIds} failed to commit keeping LastProcessedEntryId={LastProcessedEntryId} and LastProcessedSequenceId={LastProcessedSequenceId}");
+                logger.Warn($"Transaction handling {orderedByEntryIds.Count} entries from {lowestEntryId}({lowestSequence}) to {highestEntryId}({highestSequence}) failed to commit keeping LastProcessedEntryId={LastProcessedEntryId} and LastProcessedSequenceId={LastProcessedSequenceId}");
             }
             
             return new Tuple<bool, string, long>(committed, highestEntryId, highestSequence);

@@ -26,8 +26,8 @@ waitForCompletion() {
             # Check if the count has increased
             if [ "$output" -eq "$lastCount" ]; then
                 unchangedCount=$((unchangedCount + 1))
-                if [ $unchangedCount -ge 3 ]; then
-                    echo "Count hasn't increased in 3 iterations, exiting..."
+                if [ $unchangedCount -ge 5 ]; then
+                    echo "Count hasn't increased in 5 iterations, exiting..."
                     break
                 fi
             else

@@ -50,7 +50,7 @@ namespace RedisAccessLayer
             lockAcquisitionTime = acquired ? DateTime.UtcNow : DateTime.MinValue;
             if (logger.IsDebugEnabled)
             {
-                logger.Debug($"AcquireLock result={result} for lockKey={lockKey} and lockValue={lockValue} (acquired={acquired} and lockAcquisitionTime={lockAcquisitionTime}");
+                logger.Debug($"AcquireLock result={result} for lockKey={lockKey} and lockValue={lockValue} (acquired={acquired} and lockAcquisitionTime={DisplayDateTime(lockAcquisitionTime)}");
             }
             return acquired;
         }
@@ -68,7 +68,7 @@ namespace RedisAccessLayer
             }
             if (logger.IsDebugEnabled)
             {
-                logger.Debug($"ReleaseLock result={result} for lockKey={lockKey} and lockValue={lockValue} (released={released} with lockAcquisitionTime={lockAcquisitionTime}");
+                logger.Debug($"ReleaseLock result={result} for lockKey={lockKey} and lockValue={lockValue} (released={released} with lockAcquisitionTime={DisplayDateTime(lockAcquisitionTime)}");
             }
             return released;
         }
@@ -86,7 +86,7 @@ namespace RedisAccessLayer
             }
             if (logger.IsDebugEnabled)
             {
-                logger.Debug($"ExtendLock result={result} for lockKey={lockKey} and lockValue={lockValue} (extended={extended} with lockAcquisitionTime={lockAcquisitionTime}");
+                logger.Debug($"ExtendLock result={result} for lockKey={lockKey} and lockValue={lockValue} (extended={extended} with lockAcquisitionTime={DisplayDateTime(lockAcquisitionTime)}");
             }
             return extended;
         }
