@@ -2,8 +2,8 @@
 
 # docker login
 
-BASE_VERSION=0.0.1
-MAIN_VERSION=0.0.23
+BASE_VERSION=0.0.2
+MAIN_VERSION=0.0.26
 REPO_NAME=claudeducharme
 
 push_images() {

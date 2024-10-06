@@ -11,12 +11,12 @@ namespace CommonTypes
         public string? Payload {get; set;}
         public int Delay {get; set;}
 
-        public long CreatedAt {get; set;}
-        public long ProcessingAt {get; set;}
-        public long ProcessedAt {get; set;}
-        public long SequencingAt {get; set;}
-        public long SavedAt {get; set;}
-        public long SequencedAt {get; set;}
+        public long CreatedAt {get; set;} = 0;
+        public long ProcessingAt {get; set;} = 0;
+        public long ProcessedAt {get; set;} = 0;
+        public long SequencingAt {get; set;} = 0;
+        public long SavedAt {get; set;} = 0;
+        public long SequencedAt {get; set;} = 0;
 
         private const string DateTimeFormat = "yyyy/MM/dd HH:mm:ss.fff";
 

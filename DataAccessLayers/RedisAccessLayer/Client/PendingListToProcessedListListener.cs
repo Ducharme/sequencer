@@ -11,6 +11,8 @@ namespace RedisAccessLayer
     {
         public string? LastProcessedEntryId { get; protected set; }
         private long pendingMessages = 0;
+        private long processingMessages = 0;
+        private const int MaxProcessingMessages = 1; // TODO: Fix logic about the stream before increasing to 25
         private const long ListBatchSize = 1000;
         private readonly ManualResetEventSlim newMessageEvent = new ManualResetEventSlim(false);
         private const int WaitTime = 100;
@@ -81,43 +83,24 @@ namespace RedisAccessLayer
                         lastProcessingStuckCheck = DateTime.UtcNow;
                     }
 
+                    var processingAvailable = MaxProcessingMessages - (int)Interlocked.Read(ref processingMessages);
                     var count = Interlocked.Read(ref pendingMessages);
-                    var shoudWait = count == 0 && !lastReadHadvalue;
-                    if (shoudWait)
+                    var shouldWait = count == 0 && !lastReadHadvalue || processingAvailable <= 0;
+                    if (shouldWait)
                     {
                         newMessageEvent.Wait(WaitTime);
+                        //processingAvailable = MaxProcessingMessages - (int)Interlocked.Read(ref processingMessages);
                     }
 
                     newMessageEvent.Reset();
+                    //if (processingAvailable <= 0)
+                    //{
+                    //    continue;
+                    //}
                     var dtStart = DateTime.Now;
                     var processingAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                    // var str = await rcm.ListRightPopLeftPushListSetByIndexInTransactionAsync(pendingListKey, processingListKey, processingAt);
-                    // var dtEnd = DateTime.Now;
-                    // if (!string.IsNullOrEmpty(str))
-                    // {
-                    //     lastReadHadvalue = true;
-                    //     MyMessage? mm = str.FromShortString();
-                    //     if (mm != null)
-                    //     {
-                    //         var elapsed = Math.Round(dtEnd.Subtract(dtStart).TotalMilliseconds, 2);
-                    //         logger.Info($"List {pendingListKey} contains message {str}, noValueCount={noValueCount}, elapsed={elapsed} ms");
-                    //         await handler(pendingListKey, str, mm); // NOTE: Processing could be done on another thread
-                    //     } else {
-                    //         logger.Warn($"List {pendingListKey} contains invalid message {str}, noValueCount={noValueCount}");
-                    //         logger.Debug($"List {processingListKey} is removing value {str}");
-                    //         var ret = await rcm.ListRemoveAsync(processingListKey, str);
-                    //         logger.Debug($"List {processingListKey} removed value {str}, count={ret}");
-                    //     }
 
-                    //     noValueCount = 0;
-                    // } else {
-                    //     logger.Debug($"ListRightPopLeftPushListSetByIndexInTransactionAsync received an empty response (shoudWait={shoudWait}, noValueCount={noValueCount}, pendingMessages={pendingMessages}, lastReadHadvalue={lastReadHadvalue})");
-                    //     lastReadHadvalue = false;
-                    //     Interlocked.Exchange(ref pendingMessages, 0);
-                    //     noValueCount += 1;
-                    // }
-
-                    var strs = await rcm.ListRightPopLeftPushListSetByIndexInTransactionBatchAsync(pendingListKey, processingListKey, processingAt);
+                    var strs = await rcm.ListRightPopLeftPushListSetByIndexInTransactionBatchAsync(pendingListKey, processingListKey, processingAt, processingAvailable);
                     var dtEnd = DateTime.Now;
                     if (strs.Length > 0)
                     {
@@ -129,7 +112,9 @@ namespace RedisAccessLayer
                             {
                                 var elapsed = Math.Round(dtEnd.Subtract(dtStart).TotalMilliseconds, 2);
                                 logger.Info($"List {pendingListKey} contains message {str}, noValueCount={noValueCount}, elapsed={elapsed} ms");
-                                _ = Task.Run(async() => { try { await handler(pendingListKey, str, mm); } catch (Exception ex) { logger.Error($"Error processing message {str}", ex); } });
+                                //Interlocked.Increment(ref processingMessages);
+                                //_ = Task.Run(async() => { try { await handler(pendingListKey, str, mm); } catch (Exception ex) { logger.Error($"Error processing message {str}", ex); } finally { Interlocked.Decrement(ref processingMessages); } });
+                                await handler(pendingListKey, str, mm);
                             } else {
                                 logger.Warn($"List {pendingListKey} contains invalid message {str}, noValueCount={noValueCount}");
                                 logger.Debug($"List {processingListKey} is removing value {str}");
@@ -140,7 +125,7 @@ namespace RedisAccessLayer
 
                         noValueCount = 0;
                     } else {
-                        logger.Debug($"ListRightPopLeftPushListSetByIndexInTransactionBatchAsync received an empty response (shoudWait={shoudWait}, noValueCount={noValueCount}, pendingMessages={pendingMessages}, lastReadHadvalue={lastReadHadvalue})");
+                        logger.Debug($"ListRightPopLeftPushListSetByIndexInTransactionBatchAsync received an empty response (shouldWait={shouldWait}, noValueCount={noValueCount}, pendingMessages={pendingMessages}, lastReadHadvalue={lastReadHadvalue})");
                         lastReadHadvalue = false;
                         Interlocked.Exchange(ref pendingMessages, 0);
                         noValueCount += 1;

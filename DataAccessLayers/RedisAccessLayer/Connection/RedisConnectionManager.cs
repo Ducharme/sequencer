@@ -23,7 +23,6 @@ namespace RedisAccessLayer
 
         private static readonly ILog logger = LogManager.GetLogger(typeof(RedisConnectionManager));
         private static readonly ILog loggerRedis = LogManager.GetLogger("StackExchange.Redis");
-        private const int ScriptBatchSize = 25;
 
         private const string ScriptPendingToProcessing = @"
 local source = KEYS[1]
@@ -40,13 +39,13 @@ else
     return nil
 end";
 
-    private static readonly string ScriptBatchPendingToProcessing = $@"
+    private static readonly string ScriptBatchPendingToProcessing = @"
 local source = KEYS[1]
 local destination = KEYS[2]
 local replacementTime = ARGV[1]
-local batchSize = {ScriptBatchSize}
+local batchSize = ARGV[2]
 
-local results = {{}}
+local results = {}
 local count = 0
 
 for i = 1, batchSize do
@@ -294,7 +293,7 @@ end";
             }
         }
 
-        public async Task<string[]> ListRightPopLeftPushListSetByIndexInTransactionBatchAsync(RedisKey source, RedisKey destination, long val)
+        public async Task<string[]> ListRightPopLeftPushListSetByIndexInTransactionBatchAsync(RedisKey source, RedisKey destination, long val, int batchSize)
         {
             try
             {
@@ -302,7 +301,7 @@ end";
                 {
                     logger.Debug($"ListRightPopLeftPushListSetByIndexInTransactionBatchAsync source={source} destination={destination} val={val}");
                 }
-                RedisResult result = await Database.ScriptEvaluateAsync(ScriptBatchPendingToProcessing, [source, destination], [val], DefaultCommandFlags);
+                RedisResult result = await Database.ScriptEvaluateAsync(ScriptBatchPendingToProcessing, [source, destination], [val, batchSize], DefaultCommandFlags);
                 hasError = false;
                 string[] response;
                 if (result.IsNull)

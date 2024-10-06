@@ -19,7 +19,7 @@ namespace RedisAccessLayer
         Task<string> ListGetByIndexAsync(RedisKey key, long index);
         Task<bool> KeyDeleteAsync(RedisKey key);
         Task<string> ListRightPopLeftPushListSetByIndexInTransactionAsync(RedisKey source, RedisKey destination, long val);
-        Task<string[]> ListRightPopLeftPushListSetByIndexInTransactionBatchAsync(RedisKey source, RedisKey destination, long val);
+        Task<string[]> ListRightPopLeftPushListSetByIndexInTransactionBatchAsync(RedisKey source, RedisKey destination, long val, int batchSize);
         Task<bool> ListLeftPushPublishInTransactionAsync(RedisKey key, RedisValue val, RedisChannel publishChannel, RedisValue publishValue);
         Task<bool> ListLeftPushPublishInTransactionAsync(RedisKey key, IEnumerable<MyMessage> mms, RedisChannel publishChannel, RedisValue publishValue);
         Task<long> ListRemoveAsync(RedisKey key, RedisValue val);

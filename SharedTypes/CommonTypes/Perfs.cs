@@ -34,10 +34,10 @@ namespace CommonTypes
                 var from = firstTime + (i * 1000);
                 var to = from + 1000;
 
-                var processingMatches = mms.Where(mm => mm.ProcessingAt >= from && mm.ProcessedAt < to);
+                var processingMatches = mms.Where(mm => mm.ProcessingAt >= from && mm.ProcessingAt < to);
                 ProcessingRatePerSecond.Add(i, processingMatches.Count());
 
-                var sequencingMatches = mms.Where(mm => mm.SequencingAt >= from && mm.SequencedAt < to);
+                var sequencingMatches = mms.Where(mm => mm.SequencingAt >= from && mm.SequencingAt < to);
                 SequencingRatePerSecond.Add(i, sequencingMatches.Count());
 
                 logger.Info($"i={i}, from={from}, to={to}, processingMatches.Count()={processingMatches.Count()}, sequencingMatches.Count()={sequencingMatches.Count()}");

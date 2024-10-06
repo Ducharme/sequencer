@@ -9,9 +9,8 @@ start_dotnet_web_services() {
     AWP_PORTS=$(launchDotnetAppOnAvailablePorts 5710 1 $ADMIN_WEB_ASSEMBLY_FILE)
     sleep $ADMIN_WAIT_TIME_SEC
     export ADMIN_PROCESS_PORT=$(echo "$AWP_PORTS" | tr ',' '\n' | head -n 1)
-    echo -n "curl -s -L -X GET http://$ADMIN_PROCESS_HOST:$ADMIN_PROCESS_PORT/healthz -> " && curl -s -L -X GET "http://$ADMIN_PROCESS_HOST:$ADMIN_PROCESS_PORT/healthz"
-    echo -n "curl -X DELETE http://$ADMIN_PROCESS_HOST:$ADMIN_PROCESS_PORT/messages?name=$GROUP_NAME -> " && curl -X DELETE "http://$ADMIN_PROCESS_HOST:$ADMIN_PROCESS_PORT/messages?name=$GROUP_NAME"
-    echo ""
+    echo -n "curl -s -L -X GET http://$ADMIN_PROCESS_HOST:$ADMIN_PROCESS_PORT/healthz -> " && curl -s -L -X GET "http://$ADMIN_PROCESS_HOST:$ADMIN_PROCESS_PORT/healthz" && echo ""
+    echo -n "curl -X DELETE http://$ADMIN_PROCESS_HOST:$ADMIN_PROCESS_PORT/messages?name=$GROUP_NAME -> " && curl -X DELETE "http://$ADMIN_PROCESS_HOST:$ADMIN_PROCESS_PORT/messages?name=$GROUP_NAME" && echo ""
 
     # SequencerWebService
 

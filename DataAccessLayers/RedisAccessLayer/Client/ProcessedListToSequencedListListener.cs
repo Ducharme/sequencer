@@ -249,23 +249,23 @@ namespace RedisAccessLayer
 
                 var ids = dic.Values.Select(kvp => kvp.Sequence).ToList();
                 var sequenceComplete = SequenceHelper.IsSequenceComplete(this.LastProcessedSequenceId, ids, logger);
-                var partialSequence = sequenceComplete ? [] : SequenceHelper.GetPartialSequence(this.LastProcessedSequenceId, ids, logger);
+                var partialSequence = SequenceHelper.GetPartialSequence(this.LastProcessedSequenceId, ids, logger);
                 if (logger.IsDebugEnabled)
                 {
-                    if (sequenceComplete)
+                    if (partialSequence.Count > 0)
                     {
-                        logger.Debug($"Sequence ids from {ids.Min()} to {ids.Max()} IsSequenceComplete: {sequenceComplete}");
+                        var upTo = partialSequence.Max().ToString();
+                        var missingIds = FindMissingSequenceIds(ids);
+                        var missingIdsJoined = string.Join(",", missingIds.Order());
+                        logger.Debug($"Sequence ids are from {ids.Min()} to {ids.Max()} is ordered up to {upTo}. IsSequenceComplete: {sequenceComplete} & PartialSequence.Count {partialSequence.Count} & MissingSequenceIds:{missingIdsJoined}");
                     }
                     else
                     {
-                        var upTo = partialSequence.Count > 0 ? partialSequence.Max().ToString() : "N/A";
-                        var missingIds = FindMissingSequenceIds(ids);
-                        var missingIdsJoined = string.Join(",", missingIds.Order());
-                        logger.Debug($"Sequence ids are from {ids.Min()} to {ids.Max()} is ordered up to {upTo}). IsSequenceComplete: {sequenceComplete} & PartialSequence.Count {partialSequence.Count} & MissingSequenceIds:{missingIdsJoined}");
+                        logger.Debug($"Sequence ids are from {ids.Min()} to {ids.Max()} is ordered. IsSequenceComplete: {sequenceComplete}");
                     }
                 }
 
-                if (!sequenceComplete && partialSequence.Count > 0)
+                if (partialSequence.Count > 0)
                 {
                     foreach (var id in ids)
                     {
@@ -278,7 +278,7 @@ namespace RedisAccessLayer
                 }
 
                 // NOTE: Do not process if there is a missing message in the middle of the sequence of ids
-                if (sequenceComplete || partialSequence.Count > 0)
+                if (sequenceComplete || partialSequence.Count > 0) // dic.Count > 0
                 {
                     // TODO: When dic has more than 1000 entries, call syncLock.ExtendLock(defaultLockTime) and process by batch
                     var success = await handler(dic);

@@ -1,5 +1,7 @@
 #!/bin/sh
 
+MAX_ITERATIONS=5
+
 waitForCompletion() {
     expectedCount=$1
     containerHost=$2
@@ -26,8 +28,8 @@ waitForCompletion() {
             # Check if the count has increased
             if [ "$output" -eq "$lastCount" ]; then
                 unchangedCount=$((unchangedCount + 1))
-                if [ $unchangedCount -ge 5 ]; then
-                    echo "Count hasn't increased in 5 iterations, exiting..."
+                if [ $unchangedCount -ge $MAX_ITERATIONS ]; then
+                    echo "Count hasn't increased in $MAX_ITERATIONS iterations, exiting..."
                     break
                 fi
             else
