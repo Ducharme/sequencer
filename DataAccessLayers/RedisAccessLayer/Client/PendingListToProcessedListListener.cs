@@ -1,3 +1,4 @@
+//#define PARALLEL_PROCESSING
 //#define LIST_CONTAINS
 
 using CommonTypes;
@@ -11,8 +12,10 @@ namespace RedisAccessLayer
     {
         public string? LastProcessedEntryId { get; protected set; }
         private long pendingMessages = 0;
+#if PARALLEL_PROCESSING
         private long processingMessages = 0;
         private const int MaxProcessingMessages = 1; // TODO: Fix logic about the stream before increasing to 25
+#endif
         private const long ListBatchSize = 1000;
         private readonly ManualResetEventSlim newMessageEvent = new ManualResetEventSlim(false);
         private const int WaitTime = 100;
@@ -83,23 +86,31 @@ namespace RedisAccessLayer
                         lastProcessingStuckCheck = DateTime.UtcNow;
                     }
 
-                    var processingAvailable = MaxProcessingMessages - (int)Interlocked.Read(ref processingMessages);
                     var count = Interlocked.Read(ref pendingMessages);
-                    var shouldWait = count == 0 && !lastReadHadvalue || processingAvailable <= 0;
+                    var shouldWait = count == 0 && !lastReadHadvalue;
                     if (shouldWait)
                     {
                         newMessageEvent.Wait(WaitTime);
-                        //processingAvailable = MaxProcessingMessages - (int)Interlocked.Read(ref processingMessages);
                     }
-
                     newMessageEvent.Reset();
-                    //if (processingAvailable <= 0)
-                    //{
-                    //    continue;
-                    //}
+
+#if PARALLEL_PROCESSING
+                    var processingAvailable = MaxProcessingMessages - (int)Interlocked.Read(ref processingMessages);
+                    if (processingAvailable <= 0)
+                    {
+                        await Task.Delay(5);
+                        processingAvailable = MaxProcessingMessages - (int)Interlocked.Read(ref processingMessages);
+                        if (processingAvailable <= 0)
+                        {
+                            continue;
+                        }
+                    }
+#else
+                    const int processingAvailable = 1;
+#endif
+
                     var dtStart = DateTime.Now;
                     var processingAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
                     var strs = await rcm.ListRightPopLeftPushListSetByIndexInTransactionBatchAsync(pendingListKey, processingListKey, processingAt, processingAvailable);
                     var dtEnd = DateTime.Now;
                     if (strs.Length > 0)
@@ -112,9 +123,12 @@ namespace RedisAccessLayer
                             {
                                 var elapsed = Math.Round(dtEnd.Subtract(dtStart).TotalMilliseconds, 2);
                                 logger.Info($"List {pendingListKey} contains message {str}, noValueCount={noValueCount}, elapsed={elapsed} ms");
-                                //Interlocked.Increment(ref processingMessages);
-                                //_ = Task.Run(async() => { try { await handler(pendingListKey, str, mm); } catch (Exception ex) { logger.Error($"Error processing message {str}", ex); } finally { Interlocked.Decrement(ref processingMessages); } });
+#if PARALLEL_PROCESSING
+                                Interlocked.Increment(ref processingMessages);
+                                _ = Task.Run(async() => { try { await handler(pendingListKey, str, mm); } catch (Exception ex) { logger.Error($"Error processing message {str}", ex); } finally { Interlocked.Decrement(ref processingMessages); } });
+#else
                                 await handler(pendingListKey, str, mm);
+#endif                
                             } else {
                                 logger.Warn($"List {pendingListKey} contains invalid message {str}, noValueCount={noValueCount}");
                                 logger.Debug($"List {processingListKey} is removing value {str}");

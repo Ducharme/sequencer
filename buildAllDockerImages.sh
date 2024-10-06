@@ -104,12 +104,12 @@ echo "check_and_pull_or_build_image $RUNTIME_IMAGE_NAME $RUNTIME_IMAGE_TAG ./Doc
 check_and_pull_or_build_image "$RUNTIME_IMAGE_NAME" "$RUNTIME_IMAGE_TAG" "./Dockerfiles/Dockerfile-Base-Runtime" "BASE_IMAGE=$BASE_IMAGE_NAME:$BASE_IMAGE_TAG RUNTIME_IMAGE=$RUNTIME_IMAGE"
 
 BUILD_RUNTIME_ARGS="--build-arg BASE_IMAGE_RUNTIME=$RUNTIME_IMAGE_NAME:$RUNTIME_IMAGE_TAG --build-arg COMPILE_IMAGE=$COMPILE_IMAGE_NAME:$COMPILE_IMAGE_TAG --build-arg BASE_IMAGE_RUNTIME=$REPO_NAME/$RUNTIME_IMAGE_NAME:$RUNTIME_IMAGE_TAG $build_arg_1 $build_arg_2"
-echo "docker build -f ./Dockerfiles/Dockerfile-ProcessorService -t processorservice:latest -t claudeducharme/processorservice:$MAIN_VERSION-$RUNTIME_DEP_TAG $BUILD_RUNTIME_ARGS ."
-docker build -f ./Dockerfiles/Dockerfile-ProcessorService -t "processorservice:latest" -t "claudeducharme/processorservice:$MAIN_VERSION-$RUNTIME_DEP_TAG" $BUILD_RUNTIME_ARGS .
+echo "docker build -f ./Dockerfiles/Dockerfile-ProcessorService -t processorservice:latest -t $REPO_NAME/processorservice:$MAIN_VERSION-$RUNTIME_DEP_TAG $BUILD_RUNTIME_ARGS ."
+docker build -f ./Dockerfiles/Dockerfile-ProcessorService -t "processorservice:latest" -t "$REPO_NAME/processorservice:$MAIN_VERSION-$RUNTIME_DEP_TAG" $BUILD_RUNTIME_ARGS .
 if [ ! $? -eq 0 ]; then echo "Build of Dockerfile-ProcessorService failed, exiting" && exit 1; fi
 
-echo "docker build -f ./Dockerfiles/Dockerfile-SequencerService -t sequencerservice:latest -t claudeducharme/sequencerservice:$MAIN_VERSION-$RUNTIME_DEP_TAG $BUILD_RUNTIME_ARGS ."
-docker build -f ./Dockerfiles/Dockerfile-SequencerService -t "sequencerservice:latest" -t "claudeducharme/sequencerservice:$MAIN_VERSION-$RUNTIME_DEP_TAG" $BUILD_RUNTIME_ARGS .
+echo "docker build -f ./Dockerfiles/Dockerfile-SequencerService -t sequencerservice:latest -t $REPO_NAME/sequencerservice:$MAIN_VERSION-$RUNTIME_DEP_TAG $BUILD_RUNTIME_ARGS ."
+docker build -f ./Dockerfiles/Dockerfile-SequencerService -t "sequencerservice:latest" -t "$REPO_NAME/sequencerservice:$MAIN_VERSION-$RUNTIME_DEP_TAG" $BUILD_RUNTIME_ARGS .
 if [ ! $? -eq 0 ]; then echo "Build of Dockerfile-SequencerService failed, exiting" && exit 1; fi
 
 # ASPNET Web Services
@@ -118,20 +118,20 @@ ASPNET_IMAGE="mcr.microsoft.com/dotnet/aspnet:$DOTNET_ASPNET_VERSION"
 ASPNET_DEP_TAG="aspnet$DOTNET_ASPNET_VERSION-datadog$DD_TRACER_VERSION"
 ASPNET_IMAGE_NAME=sequencer-base-aspnet
 ASPNET_IMAGE_TAG="$BASE_VERSION-$ASPNET_DEP_TAG"
-echo "check_and_pull_or_build_image $ASPNET_IMAGE_NAME $ASPNET_IMAGE_TAG ./Dockerfiles/Dockerfile-Base-Aspnet BASE_IMAGE=$BASE_IMAGE_NAME:$BASE_IMAGE_TAG ASPNET_IMAGE=$ASPNET_IMAGE"
-check_and_pull_or_build_image "$ASPNET_IMAGE_NAME" "$ASPNET_IMAGE_TAG" "./Dockerfiles/Dockerfile-Base-Aspnet" "BASE_IMAGE=$BASE_IMAGE_NAME:$BASE_IMAGE_TAG ASPNET_IMAGE=$ASPNET_IMAGE"
+echo "check_and_pull_or_build_image $ASPNET_IMAGE_NAME $ASPNET_IMAGE_TAG ./Dockerfiles/Dockerfile-Base-Aspnet BASE_IMAGE=$REPO_NAME/$BASE_IMAGE_NAME:$BASE_IMAGE_TAG ASPNET_IMAGE=$ASPNET_IMAGE"
+check_and_pull_or_build_image "$ASPNET_IMAGE_NAME" "$ASPNET_IMAGE_TAG" "./Dockerfiles/Dockerfile-Base-Aspnet" "BASE_IMAGE=$REPO_NAME/$BASE_IMAGE_NAME:$BASE_IMAGE_TAG ASPNET_IMAGE=$ASPNET_IMAGE"
 
 BUILD_APSNET_ARGS="--build-arg BASE_IMAGE_ASPNET=$ASPNET_IMAGE_NAME:$ASPNET_IMAGE_TAG --build-arg COMPILE_IMAGE=$COMPILE_IMAGE_NAME:$COMPILE_IMAGE_TAG --build-arg BASE_IMAGE_ASPNET=$REPO_NAME/$ASPNET_IMAGE_NAME:$ASPNET_IMAGE_TAG $build_arg_1 $build_arg_2"
-echo "docker build -f ./Dockerfiles/Dockerfile-AdminWebPortal -t adminwebportal:latest -t claudeducharme/adminwebportal:$MAIN_VERSION-$ASPNET_DEP_TAG $BUILD_APSNET_ARGS ."
-docker build -f ./Dockerfiles/Dockerfile-AdminWebPortal -t "adminwebportal:latest" -t "claudeducharme/adminwebportal:$MAIN_VERSION-$ASPNET_DEP_TAG" $BUILD_APSNET_ARGS .
+echo "docker build -f ./Dockerfiles/Dockerfile-AdminWebPortal -t adminwebportal:latest -t $REPO_NAME/adminwebportal:$MAIN_VERSION-$ASPNET_DEP_TAG $BUILD_APSNET_ARGS ."
+docker build -f ./Dockerfiles/Dockerfile-AdminWebPortal -t "adminwebportal:latest" -t "$REPO_NAME/adminwebportal:$MAIN_VERSION-$ASPNET_DEP_TAG" $BUILD_APSNET_ARGS .
 if [ ! $? -eq 0 ]; then echo "Build of Dockerfile-AdminWebPortal failed, exiting" && exit 1; fi
 
-echo "docker build -f ./Dockerfiles/Dockerfile-ProcessorWebService -t processorwebservice:latest -t claudeducharme/processorwebservice:$MAIN_VERSION-$ASPNET_DEP_TAG $BUILD_APSNET_ARGS ."
-docker build -f ./Dockerfiles/Dockerfile-ProcessorWebService -t "processorwebservice:latest" -t "claudeducharme/processorwebservice:$MAIN_VERSION-$ASPNET_DEP_TAG" $BUILD_APSNET_ARGS .
+echo "docker build -f ./Dockerfiles/Dockerfile-ProcessorWebService -t processorwebservice:latest -t $REPO_NAME/processorwebservice:$MAIN_VERSION-$ASPNET_DEP_TAG $BUILD_APSNET_ARGS ."
+docker build -f ./Dockerfiles/Dockerfile-ProcessorWebService -t "processorwebservice:latest" -t "$REPO_NAME/processorwebservice:$MAIN_VERSION-$ASPNET_DEP_TAG" $BUILD_APSNET_ARGS .
 if [ ! $? -eq 0 ]; then echo "Build of Dockerfile-ProcessorWebService failed, exiting" && exit 1; fi
 
-echo "docker build -f ./Dockerfiles/Dockerfile-SequencerWebService -t sequencerwebservice:latest -t claudeducharme/sequencerwebservice:$MAIN_VERSION-$ASPNET_DEP_TAG $BUILD_APSNET_ARGS ."
-docker build -f ./Dockerfiles/Dockerfile-SequencerWebService -t "sequencerwebservice:latest" -t "claudeducharme/sequencerwebservice:$MAIN_VERSION-$ASPNET_DEP_TAG" $BUILD_APSNET_ARGS .
+echo "docker build -f ./Dockerfiles/Dockerfile-SequencerWebService -t sequencerwebservice:latest -t $REPO_NAME/sequencerwebservice:$MAIN_VERSION-$ASPNET_DEP_TAG $BUILD_APSNET_ARGS ."
+docker build -f ./Dockerfiles/Dockerfile-SequencerWebService -t "sequencerwebservice:latest" -t "$REPO_NAME/sequencerwebservice:$MAIN_VERSION-$ASPNET_DEP_TAG" $BUILD_APSNET_ARGS .
 if [ ! $? -eq 0 ]; then echo "Build of Dockerfile-SequencerWebService failed, exiting" && exit 1; fi
 
 echo "DONE BUILDING!"
