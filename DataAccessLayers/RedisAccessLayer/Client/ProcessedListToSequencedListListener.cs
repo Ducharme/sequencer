@@ -7,7 +7,6 @@ namespace RedisAccessLayer
 {
     public class ProcessedListToSequencedListListener : ProcessedStreamToSequencedListClientBase, IProcessedToSequencedListener
     {
-        public string? LastProcessedEntryId { get; protected set; }
         private long pendingMessages = 0;
         private bool? isQueueEmpty = null;
         private readonly ISyncLock syncLock;
@@ -36,7 +35,7 @@ namespace RedisAccessLayer
             ProcessedStreamChannel = RedisChannel.Literal(prefix + "ProcessedMessages");
         }
 
-        public async Task ListenForPendingMessages(Func<Dictionary<string, MyStreamMessage>, Task<bool>> handler)
+        public async Task ListenForPendingMessages(Func<List<MyStreamMessage>, Task<bool>> handler)
         {
             rcm.AddSubscription(ProcessedStreamChannel, SubscribeToProcessedChannelHandler);
             rcm.AddSubscription(SequencedStreamChannel, SubscribeToSequencedChannelHandler);
@@ -132,11 +131,6 @@ namespace RedisAccessLayer
                     if (acquired == true)
                     {
                         isLeader = true;
-                        if (string.IsNullOrEmpty(LastProcessedEntryId))
-                        {
-                            logger.Debug("Set last values explicitly to initialize");
-                            await SetLastMessageFromSequencedStream();
-                        }
 
                         var count = Interlocked.Read(ref pendingMessages);
                         logger.Debug($"pendingMessages={count} && sequencingStatus={sequencingStatus}");
@@ -146,7 +140,7 @@ namespace RedisAccessLayer
                         }
 
                         newMessageEvent.Reset();
-                        var entries = await rcm.StreamReadAsync(processedStreamKey, LastProcessedEntryId);
+                        var entries = await rcm.StreamReadAsync(processedStreamKey, StreamPosition.Beginning);
                         logger.Debug($"StreamReadAsync entries={entries.Length}");
                         if (entries.Length > 0)
                         {
@@ -232,7 +226,7 @@ namespace RedisAccessLayer
             }
         }
 
-        private async Task<string[]> SequenceEntries(Func<Dictionary<string, MyStreamMessage>, Task<bool>> handler, string[] lastEntries, StreamEntry[] entries)
+        private async Task<string[]> SequenceEntries(Func<List<MyStreamMessage>, Task<bool>> handler, string[] lastEntries, StreamEntry[] entries)
         {
             var thisEntries = entries.Select(e => e.Id.ToString()).ToArray();
             if (!thisEntries.SequenceEqual(lastEntries))
@@ -240,48 +234,47 @@ namespace RedisAccessLayer
                 logger.Info($"Received new stream ids {string.Join(",", thisEntries)}");
                 lastEntries = thisEntries;
 
-                var dic = entries.ToDictionary(e => e.Id.ToString(), e => e.ToMyMessage());
+                var lst = entries.Select(e => e.ToMyMessage()).OrderBy(msm => msm.Sequence).ToList();
                 long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                foreach (var kvp in dic)
+                foreach (var msm in lst)
                 {
-                    kvp.Value.SequencingAt = timestamp;
+                    msm.SequencingAt = timestamp;
                 }
 
-                var ids = dic.Values.Select(kvp => kvp.Sequence).ToList();
-                var sequenceComplete = SequenceHelper.IsSequenceComplete(this.LastProcessedSequenceId, ids, logger);
-                var partialSequence = SequenceHelper.GetPartialSequence(this.LastProcessedSequenceId, ids, logger);
+                var ids = lst.Select(kvp => kvp.Sequence).Order().ToList(); // TODO: Remove Order()
+                var sequence = SequenceHelper.GetSequence(LastProcessedSequenceId, ids);
                 if (logger.IsDebugEnabled)
                 {
-                    if (partialSequence.Count > 0)
+                    if (!sequence.IsComplete)
                     {
-                        var upTo = partialSequence.Max().ToString();
                         var missingIds = FindMissingSequenceIds(ids);
                         var missingIdsJoined = string.Join(",", missingIds.Order());
-                        logger.Debug($"Sequence ids are from {ids.Min()} to {ids.Max()} is ordered up to {upTo}. IsSequenceComplete: {sequenceComplete} & PartialSequence.Count {partialSequence.Count} & MissingSequenceIds:{missingIdsJoined}");
+                        logger.Debug($"Sequence range is from {sequence.Min} to {sequence.Max} but ordered up to {sequence.LastInOrder}, expecting {sequence.ExpectedNext} but next is {sequence.ActualNext}. LastProcessedSequenceId={sequence.LastProcessed}, IsSequenceComplete={sequence.IsComplete}, PartialSequence.Count={sequence.List.Count}, MissingSequenceIds={missingIdsJoined}");
                     }
                     else
                     {
-                        logger.Debug($"Sequence ids are from {ids.Min()} to {ids.Max()} is ordered. IsSequenceComplete: {sequenceComplete}");
+                        logger.Debug($"Sequence range is from {sequence.Min} to {sequence.Max}. IsSequenceComplete: {sequence.IsComplete} & Count {sequence.List.Count}");
                     }
                 }
 
-                if (partialSequence.Count > 0)
+                List<MyStreamMessage> filtered;
+                if (sequence.IsComplete)
                 {
-                    foreach (var id in ids)
-                    {
-                        if (!partialSequence.Contains(id))
-                        {
-                            var kvp = dic.First(e => e.Value.Sequence == id);
-                            dic.Remove(kvp.Key);
-                        }
-                    }
+                    filtered = lst;
+                }
+                else if (sequence.List.Count > 0)
+                {
+                    filtered = lst.Where(msm => sequence.List.Contains(msm.Sequence)).OrderBy(msm => msm.Sequence).ToList(); // TODO: Remove Order()
+                }
+                else
+                {
+                    filtered = [];
                 }
 
-                // NOTE: Do not process if there is a missing message in the middle of the sequence of ids
-                if (sequenceComplete || partialSequence.Count > 0) // dic.Count > 0
+                if (filtered.Count > 0)
                 {
                     // TODO: When dic has more than 1000 entries, call syncLock.ExtendLock(defaultLockTime) and process by batch
-                    var success = await handler(dic);
+                    var success = await handler(filtered);
                     sequencingStatus = success ? SequencingStatus.Succeeded : SequencingStatus.Failed;
                 }
                 else
@@ -332,8 +325,7 @@ namespace RedisAccessLayer
                 if (lastSeq > LastProcessedSequenceId)
                 {
                     LastProcessedSequenceId = lastSeq;
-                    LastProcessedEntryId = entryId;
-                    logger.Info($"Received message {message} from channel {channel} with LastProcessedEntryId={LastProcessedEntryId} and LastProcessedSequenceId={LastProcessedSequenceId}");
+                    logger.Info($"Received message {message} from channel {channel} with LastProcessedSequenceId={LastProcessedSequenceId}");
                 }
                 else
                 {
@@ -367,7 +359,8 @@ namespace RedisAccessLayer
         public async Task SetLastMessageFromSequencedStream()
         {
             // Handle entryId when starting afterward (should resume to the next key not the first)
-            string? lastKey = "-"; // Use "$" for last message and "-" for all messages
+            // Use StreamPosition.NewMessages "$" for last message and StreamPosition.Beginning "-" for all messages
+            string? lastKey = StreamPosition.Beginning;
             var listen = Interlocked.Read(ref this.shouldListen);
             if (listen == 1)
             {
@@ -379,8 +372,7 @@ namespace RedisAccessLayer
                     if (!string.IsNullOrEmpty(tuple.Item1) && tuple.Item2 != null)
                     {
                         LastProcessedSequenceId = tuple.Item2;
-                        LastProcessedEntryId = tuple.Item1;
-                        logger.Info($"Received stream info for {sequencedStreamKey} with LastProcessedEntryId={LastProcessedEntryId} and LastProcessedSequenceId={LastProcessedSequenceId}");
+                        logger.Info($"Received stream info for {sequencedStreamKey} with LastProcessedSequenceId={LastProcessedSequenceId}");
                     }
                     else
                     {
@@ -389,15 +381,10 @@ namespace RedisAccessLayer
                 }
                 else
                 {
-                    logger.Info($"Stream {sequencedStreamKey} does not exist, LastProcessedEntryId={LastProcessedEntryId} and LastProcessedSequenceId={LastProcessedSequenceId}");
+                    logger.Info($"Stream {sequencedStreamKey} does not exist, LastProcessedSequenceId={LastProcessedSequenceId}");
                 }
             }
 
-            if (LastProcessedEntryId == null)
-            {
-                logger.Info($"Setting last processed EntryId={lastKey}");
-                LastProcessedEntryId = lastKey;
-            }
             if (LastProcessedSequenceId == null)
             {
                 logger.Info($"Setting last processed SequenceId=0");
@@ -443,54 +430,40 @@ namespace RedisAccessLayer
             public Batch() { }
         }
 
-        public async Task<Tuple<bool, string, long>> FromProcessedToSequenced(Dictionary<string, MyStreamMessage> dic)
+        public async Task<Tuple<bool, string, long>> FromProcessedToSequenced(List<MyStreamMessage> msms)
         {
-            var entryIdsToDouble = dic.Keys.Select(key => new KeyValuePair<string, double>(key, double.Parse(key.Replace(Dash, Dot))));
-            var orderedByEntryIds = entryIdsToDouble.OrderBy(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
-            var lowestEntryId = orderedByEntryIds.First();
-            var highestEntryId = orderedByEntryIds.Last();
-            var highestEntryIdSeq = dic[highestEntryId].Sequence;
-            var orderedBySequence = dic.OrderBy(kvp => kvp.Value.Sequence);
-            var lowestSequence = orderedBySequence.First().Value.Sequence;
-            var highestSequence = orderedBySequence.Last().Value.Sequence;
-
             long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            foreach (var kvp in dic)
-            {
-                kvp.Value.SequencedAt = timestamp;
-            }
-
-            var extraKvp = new KeyValuePair<string, string>(MyMessageFieldNames.ColumnHighestEntryId, highestEntryId);
             var lst = new List<Tuple<string, NameValueEntry[]>>();
-            foreach (var kvp in orderedBySequence)
+            foreach (var msm in msms)
             {
-                var entryId = kvp.Key;
-                var mm = kvp.Value;
-                var nves = mm.ToNameValueEntriesWithExtraString(extraKvp);
-                var str = mm.ToShortString() ?? string.Empty;
-                logger.Info($"Appending sequencing message streamEntryId {entryId} with sequence id {mm.Sequence} to {sequencedStreamKey} and {sequencedListKey}");
+                msm.SequencedAt = timestamp;
+                var nves = msm.ToNameValueEntries();
+                var str = msm.ToShortString() ?? string.Empty;
+                logger.Info($"Appending sequencing message streamEntryId {msm.StreamId} with sequence id {msm.Sequence} to {sequencedStreamKey} and {sequencedListKey}");
                 lst.Add(new Tuple<string, NameValueEntry[]>(str, nves));
             }
 
-            logger.Info($"Deleting sequencing message streamEntryId {highestEntryId} with sequence id {highestEntryIdSeq} from {processedStreamKey}");
-            var streamDeleteValues = orderedBySequence.Where(kvp => kvp.Value != null && !string.IsNullOrEmpty(kvp.Value.StreamId)).Select(kvp => new RedisValue(kvp.Value.StreamId!)).ToArray();
+            var streamDeleteValues = msms.Where(msm => !string.IsNullOrEmpty(msm.StreamId)).Select(msm => new RedisValue(msm.StreamId!)).ToArray();
+            logger.Info($"Deleting these streamIds from {processedStreamKey}: {string.Join(",", streamDeleteValues)}");
 
-            var highestValue = string.Concat(highestEntryId, ":", highestSequence);
+            var highestSequence = msms.Max(msm => msm.Sequence);
+            var highestValue = string.Concat("NA:", highestSequence);
             logger.Info($"Publishing message {highestValue} to channel {SequencedStreamChannel}");
 
             var committed = await rcm.StreamAddListLeftPushStreamDeletePublishInTransactionAsync(sequencedStreamKey, sequencedListKey, lst, processedStreamKey, streamDeleteValues, SequencedStreamChannel, highestValue);
+            var first = msms.First();
+            var last = msms.Last();
             if (committed)
             {
                 LastProcessedSequenceId = highestSequence;
-                LastProcessedEntryId = highestEntryId;
-                logger.Info($"Transaction handling {orderedByEntryIds.Count} entries from {lowestEntryId}({lowestSequence}) to {highestEntryId}({highestSequence}) successfully committed with LastProcessedEntryId={LastProcessedEntryId} and LastProcessedSequenceId={LastProcessedSequenceId}");
+                logger.Info($"Transaction handling {msms.Count} entries from {first.StreamId}({first.Sequence}) to {last.StreamId}({last.Sequence}) successfully committed with LastProcessedSequenceId={LastProcessedSequenceId}");
             }
             else
             {
-                logger.Warn($"Transaction handling {orderedByEntryIds.Count} entries from {lowestEntryId}({lowestSequence}) to {highestEntryId}({highestSequence}) failed to commit keeping LastProcessedEntryId={LastProcessedEntryId} and LastProcessedSequenceId={LastProcessedSequenceId}");
+                logger.Warn($"Transaction handling {msms.Count} entries from {first.StreamId}({first.Sequence}) to {last.StreamId}({last.Sequence}) failed to commit keeping LastProcessedSequenceId={LastProcessedSequenceId}");
             }
             
-            return new Tuple<bool, string, long>(committed, highestEntryId, highestSequence);
+            return new Tuple<bool, string, long>(committed, "NA", highestSequence);
         }
     }
 }

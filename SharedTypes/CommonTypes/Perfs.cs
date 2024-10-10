@@ -20,8 +20,8 @@ namespace CommonTypes
         public Perfs(IEnumerable<MyMessage> mms)
         {
             // Long contains milliseconds (11 digits)
-            var firstTime = mms.Min(mm => mm.ProcessingAt);
-            var lastTime = mms.Max(mm => mm.SequencedAt);
+            var firstTime = mms.Any() ? mms.Min(mm => mm.ProcessingAt) : 0;
+            var lastTime = mms.Any() ? mms.Max(mm => mm.SequencingAt) : 0;
             
             // Bucket processing per second
             var diff = lastTime - firstTime;

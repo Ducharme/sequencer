@@ -1,4 +1,4 @@
-//#define PARALLEL_PROCESSING
+#define PARALLEL_PROCESSING
 //#define LIST_CONTAINS
 
 using CommonTypes;
@@ -14,7 +14,7 @@ namespace RedisAccessLayer
         private long pendingMessages = 0;
 #if PARALLEL_PROCESSING
         private long processingMessages = 0;
-        private const int MaxProcessingMessages = 1; // TODO: Fix logic about the stream before increasing to 25
+        private const int MaxProcessingMessages = 25; // TODO: Fix logic about the stream before increasing to 25
 #endif
         private const long ListBatchSize = 1000;
         private readonly ManualResetEventSlim newMessageEvent = new ManualResetEventSlim(false);

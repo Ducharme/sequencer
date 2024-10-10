@@ -30,31 +30,31 @@ namespace SequencerService
             return int.TryParse(posEnvVar, out int result) ? result : 0;
         }
 
-        private async Task<bool> HandleSequencingMessages(Dictionary<string, MyStreamMessage> dic)
+        private async Task<bool> HandleSequencingMessages(List<MyStreamMessage> lst)
         {
-            var orderedBySequence = dic.Select(kvp => kvp.Value).OrderBy(mm => mm.Sequence).ToList();
+            var orderedBySequence = lst.OrderBy(msm => msm.Sequence).ToList();
             if (database_client != null)
             {
-                var orderedByEntryId = dic.Select(kvp => kvp.Key).OrderBy(id => id);
+                var orderedByEntryId = lst.Select(msm => msm.StreamId).OrderBy(id => id);
                 var streamEntryIds = string.Join(",", orderedByEntryId);
                 var seqIds = string.Join(",", orderedBySequence.Select(mm => mm.Sequence));
                 logger.Info($"Inserting sequencing message streamEntryIds {streamEntryIds} with sequence id {seqIds} to the database");
                 
                 var dt = database_client.InsertMessages(orderedBySequence);
                 var savedAt = DateTimeHelper.GetTimestamp(dt);
-                foreach (var mm in orderedBySequence)
+                foreach (var msm in orderedBySequence)
                 {
-                    mm.SavedAt = savedAt;
+                    msm.SavedAt = savedAt;
                 }
             } else {
                 long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                foreach (var mm in orderedBySequence)
+                foreach (var msm in orderedBySequence)
                 {
-                    mm.SavedAt = timestamp;
+                    msm.SavedAt = timestamp;
                 }
             }
 
-            var tuple = await listener.FromProcessedToSequenced(dic);
+            var tuple = await listener.FromProcessedToSequenced(lst);
             return tuple.Item1;
         }
 

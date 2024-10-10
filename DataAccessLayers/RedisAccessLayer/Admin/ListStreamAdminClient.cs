@@ -55,7 +55,7 @@ namespace RedisAccessLayer
         private async Task<List<MyStreamMessage>> GetAllMessagesFromStream(string streamKey)
         {
             var lst = new List<MyStreamMessage>();
-            var lastEntryId = "-";
+            var lastEntryId = StreamPosition.Beginning;
 
             var entries = await rcm.StreamReadAsync(streamKey, lastEntryId);
             while (entries != null && entries.Length > 0)
@@ -76,7 +76,8 @@ namespace RedisAccessLayer
         public async Task PrintLastValuesFromProcessedStream()
         {
             // Handle entryId whe starting afterward (should resume to the next key not the first)
-            string? lastKey = "$"; // Use "$" for last message and "-" for all messages
+            // Use StreamPosition.NewMessages "$" for last message and StreamPosition.Beginning "-" for all messages
+            string? lastKey = StreamPosition.NewMessages;
             var entries = await rcm.StreamReadAsync(sequencedStreamKey, lastKey);
             logger.Debug($"Stream {sequencedStreamKey} received entries");
             if (entries != null)

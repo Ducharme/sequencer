@@ -21,25 +21,28 @@ namespace CommonTypes
             long lastItemSeq = -1;
             foreach (var mm in lst)
             {
-                if (lastItemSeq < 0)
+                if (IsOrdered)
                 {
-                    lastItemSeq = mm.Sequence;
-                }
-                else
-                {
-                    var expected = lastItemSeq + 1;
-                    if (mm.Sequence != expected)
-                    {
-                        IsOrdered = false;
-                        BrokenAfter = lastItemSeq;
-                        BrokenSeq = mm.Sequence;
-                    }
-                    else
+                    if (lastItemSeq < 0)
                     {
                         lastItemSeq = mm.Sequence;
                     }
+                    else
+                    {
+                        var expected = lastItemSeq + 1;
+                        if (mm.Sequence != expected)
+                        {
+                            IsOrdered = false;
+                            BrokenAfter = lastItemSeq;
+                            BrokenSeq = mm.Sequence;
+                        }
+                        else
+                        {
+                            lastItemSeq = mm.Sequence;
+                        }
+                    }
                 }
-
+                
                 if (!IsOrdered)
                 {
                     others.Add(mm.Sequence);
