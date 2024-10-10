@@ -5,7 +5,7 @@ namespace DatabaseAccessLayer
     public interface IDatabaseClient
     {
         bool CanMessageBeProcessed(string name, long sequence);
-        DateTime InsertMessages(List<MyMessage> mms);
+        DateTime InsertMessages<M>(List<M> mms) where M : MyMessage;
     }
 }
 

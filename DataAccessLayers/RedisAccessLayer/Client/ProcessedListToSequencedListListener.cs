@@ -36,7 +36,7 @@ namespace RedisAccessLayer
             ProcessedStreamChannel = RedisChannel.Literal(prefix + "ProcessedMessages");
         }
 
-        public async Task ListenForPendingMessages(Func<Dictionary<string, MyMessage>, Task<bool>> handler)
+        public async Task ListenForPendingMessages(Func<Dictionary<string, MyStreamMessage>, Task<bool>> handler)
         {
             rcm.AddSubscription(ProcessedStreamChannel, SubscribeToProcessedChannelHandler);
             rcm.AddSubscription(SequencedStreamChannel, SubscribeToSequencedChannelHandler);
@@ -232,7 +232,7 @@ namespace RedisAccessLayer
             }
         }
 
-        private async Task<string[]> SequenceEntries(Func<Dictionary<string, MyMessage>, Task<bool>> handler, string[] lastEntries, StreamEntry[] entries)
+        private async Task<string[]> SequenceEntries(Func<Dictionary<string, MyStreamMessage>, Task<bool>> handler, string[] lastEntries, StreamEntry[] entries)
         {
             var thisEntries = entries.Select(e => e.Id.ToString()).ToArray();
             if (!thisEntries.SequenceEqual(lastEntries))
@@ -443,7 +443,7 @@ namespace RedisAccessLayer
             public Batch() { }
         }
 
-        public async Task<Tuple<bool, string, long>> FromProcessedToSequenced(Dictionary<string, MyMessage> dic)
+        public async Task<Tuple<bool, string, long>> FromProcessedToSequenced(Dictionary<string, MyStreamMessage> dic)
         {
             var entryIdsToDouble = dic.Keys.Select(key => new KeyValuePair<string, double>(key, double.Parse(key.Replace(Dash, Dot))));
             var orderedByEntryIds = entryIdsToDouble.OrderBy(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
@@ -473,12 +473,12 @@ namespace RedisAccessLayer
             }
 
             logger.Info($"Deleting sequencing message streamEntryId {highestEntryId} with sequence id {highestEntryIdSeq} from {processedStreamKey}");
-            var rvs = new RedisValue[] {highestEntryId};
+            var streamDeleteValues = orderedBySequence.Where(kvp => kvp.Value != null && !string.IsNullOrEmpty(kvp.Value.StreamId)).Select(kvp => new RedisValue(kvp.Value.StreamId!)).ToArray();
 
             var highestValue = string.Concat(highestEntryId, ":", highestSequence);
             logger.Info($"Publishing message {highestValue} to channel {SequencedStreamChannel}");
 
-            var committed = await rcm.StreamAddListLeftPushStreamDeletePublishInTransactionAsync(sequencedStreamKey, sequencedListKey, lst, processedStreamKey, rvs, SequencedStreamChannel, highestValue);
+            var committed = await rcm.StreamAddListLeftPushStreamDeletePublishInTransactionAsync(sequencedStreamKey, sequencedListKey, lst, processedStreamKey, streamDeleteValues, SequencedStreamChannel, highestValue);
             if (committed)
             {
                 LastProcessedSequenceId = highestSequence;

@@ -42,19 +42,19 @@ namespace RedisAccessLayer
             #pragma warning restore CS8619
         }
 
-       public async Task<List<MyMessage>> GetFullPendingStream()
-        {
-            return await GetAllMessagesFromStream(processedStreamKey);
-        }
-
-        public async Task<List<MyMessage>> GetFullProcessedStream()
+        public async Task<List<MyStreamMessage>> GetFullSequencedStream()
         {
             return await GetAllMessagesFromStream(sequencedStreamKey);
         }
 
-        private async Task<List<MyMessage>> GetAllMessagesFromStream(string streamKey)
+        public async Task<List<MyStreamMessage>> GetFullProcessedStream()
         {
-            var lst = new List<MyMessage>();
+            return await GetAllMessagesFromStream(processedStreamKey);
+        }
+
+        private async Task<List<MyStreamMessage>> GetAllMessagesFromStream(string streamKey)
+        {
+            var lst = new List<MyStreamMessage>();
             var lastEntryId = "-";
 
             var entries = await rcm.StreamReadAsync(streamKey, lastEntryId);
@@ -63,7 +63,7 @@ namespace RedisAccessLayer
                 foreach (StreamEntry entry in entries)
                 {
                     var entryId = entry.Id.ToString();
-                    MyMessage mm = entry.ToMyMessage();
+                    var mm = entry.ToMyMessage();
                     lst.Add(mm);
 
                     lastEntryId = entry.Id;

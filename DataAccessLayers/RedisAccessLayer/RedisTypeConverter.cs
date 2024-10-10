@@ -5,9 +5,9 @@ namespace RedisAccessLayer
 {
     public static class RedisTypeConverter
     {
-        public static MyMessage ToMyMessage(this StreamEntry entry)
+        public static MyStreamMessage ToMyMessage(this StreamEntry entry)
         {
-            var mm = new MyMessage();
+            var mm = new MyStreamMessage { StreamId = entry.Id };
             for (var i = 0; i < entry.Values.Length; i++)
             {
                 var nve = entry.Values[i];

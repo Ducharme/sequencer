@@ -14,8 +14,8 @@ namespace AdminService
         Task<List<MyMessage>> GetAllMessagesFromProcessingList(string name);
         Task<List<MyMessage>> GetAllMessagesFromSequencedList(string name);
 
-        Task<List<MyMessage>> GetAllMessagesFromPendingStream(string name);
-        Task<List<MyMessage>> GetAllMessagesFromProcessedStream(string name);
+        Task<List<MyStreamMessage>> GetAllMessagesFromSequencedStream(string name);
+        Task<List<MyStreamMessage>> GetAllMessagesFromProcessedStream(string name);
         Task<long> GetSequencedListMessagesCount(string name);
         Task<long> GetSequencedStreamMessagesCount(string name);
         Task<MyMessage?> GetSequencedStreamLastMessage(string name);

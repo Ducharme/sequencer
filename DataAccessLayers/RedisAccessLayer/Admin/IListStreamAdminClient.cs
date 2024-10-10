@@ -7,8 +7,8 @@ namespace RedisAccessLayer
         Task<List<MyMessage>> GetFullPendingList();
         Task<List<MyMessage>> GetFullProcessingList();
         Task<List<MyMessage>> GetFullSequencedList();
-        Task<List<MyMessage>> GetFullPendingStream();
-        Task<List<MyMessage>> GetFullProcessedStream();
+        Task<List<MyStreamMessage>> GetFullSequencedStream();
+        Task<List<MyStreamMessage>> GetFullProcessedStream();
         Task PrintLastValuesFromProcessedStream();
 
         Task<bool?> PushToPendingList(IEnumerable<MyMessage> mms);

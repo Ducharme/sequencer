@@ -172,7 +172,7 @@ app.MapGet("/list/processed/messages", async (string name) => {
 
 app.MapGet("/stream/pending/messages", async (string name) => {
     logger.Info($"Called /stream/pending/messages with name={name}");
-    var lst = await adm.GetAllMessagesFromPendingStream(name);
+    var lst = await adm.GetAllMessagesFromSequencedStream(name);
     return Results.Json(lst);
 });
 
@@ -254,6 +254,58 @@ app.MapGet("/list/perfs", async ([FromQuery] string name, [FromQuery] long start
 app.MapGet("/redis/infos", async () => {
     var res = await adm.RedisServerInfos();
     return Results.Json(new { res });
+});
+
+app.MapGet("/dump", async ([FromQuery] string name) => {
+
+    var pendingList = await adm.GetAllMessagesFromPendingList(name);
+    var processingList = await adm.GetAllMessagesFromProcessingList(name);
+    var processedStream = await adm.GetAllMessagesFromProcessedStream(name);
+    var pendingStream = await adm.GetAllMessagesFromSequencedStream(name);
+    var sequencedList = await adm.GetAllMessagesFromSequencedList(name);
+
+    var pendingListMin = pendingList.Count > 0 ? pendingList.Min(m => m.Sequence) : 1;
+    var processingListMin = processingList.Count > 0 ? processingList.Min(m => m.Sequence) : 1;
+    var processedStreamMin = processedStream.Count > 0 ? processedStream.Min(m => m.Sequence) : 1;
+    var pendingStreamMin = pendingStream.Count > 0 ? pendingStream.Min(m => m.Sequence) : 1;
+    var sequencedListMin = sequencedList.Count > 0 ? sequencedList.Min(m => m.Sequence) : 1;
+    var minArr = new [] { pendingListMin, processingListMin, processedStreamMin, pendingStreamMin, sequencedListMin };
+    var min = minArr.Min();
+
+    var pendingListMax = pendingList.Count > 0 ? pendingList.Max(m => m.Sequence) : 0;
+    var processingListMax = processingList.Count > 0 ? processingList.Max(m => m.Sequence) : 0;
+    var processedStreamMax = processedStream.Count > 0 ? processedStream.Max(m => m.Sequence) : 0;
+    var pendingStreamMax = pendingStream.Count > 0 ? pendingStream.Max(m => m.Sequence) : 0;
+    var sequencedListMax = sequencedList.Count > 0 ? sequencedList.Max(m => m.Sequence) : 0;
+    var maxArr = new [] { pendingListMax, processingListMax, processedStreamMax, pendingStreamMax, sequencedListMax };
+    var max = maxArr.Max();
+
+    var html = "<html><head><title>Dump</title><head><body><table border=\"1\">\n";
+    html += "<tr><th>#</th><th>Source</th><th>Sequence</th><th>CreatedAt</th><th>ProcessingAt</th><th>ProcessedAt</th><th>SequencingAt</th><th>SavedAt</th><th>SequencedAt</th><th>PendingStreamId</th></tr>";
+    for (var i=min; i <= max; i++)
+    {
+        var pendingListMsg = pendingList.FirstOrDefault(m => m.Sequence == i);
+        var processingListMsg = processingList.FirstOrDefault(m => m.Sequence == i);
+        var processedStreamMsg = processedStream.FirstOrDefault(m => m.Sequence == i);
+        var pendingStreamMsg = pendingStream.FirstOrDefault(m => m.Sequence == i);
+        var sequencedListMsg = sequencedList.FirstOrDefault(m => m.Sequence == i);
+
+        var processedStreamIds = processedStream.Select(m => m.StreamId).Order().ToList();
+        var pendingStreamIds = pendingStream.Select(m => m.StreamId).Order().ToList();
+
+        var latest = sequencedListMsg ?? pendingStreamMsg ?? processedStreamMsg ?? processingListMsg ?? pendingListMsg;
+        var source = latest == sequencedListMsg ? "sequencedList" : (latest == pendingStreamMsg ? "pendingStream" : (latest == processedStreamMsg ? "processedStream" : (latest == processingListMsg ? "processingList" : (latest == pendingListMsg ? "pendingList" : string.Empty))));
+        var get3Decimals = (string s) => { var decimals = s.IndexOf('.'); if (decimals > 0) { return s.PadRight(decimals + 4); } else { return s + ".000"; } };
+        var tc = (long? dt) => dt == null ? string.Empty : get3Decimals(MyMessage.GetTimeAsString(dt.Value));
+        html += $"<tr><td>{i}</td><th>{source}</th><td>{latest?.Sequence}</td><td>{tc(latest?.CreatedAt)}</td><td>{latest?.ProcessingAt-latest?.CreatedAt}</td><td>{latest?.ProcessedAt-latest?.CreatedAt}</td>";
+        html += $"<td>{latest?.SequencingAt-latest?.CreatedAt}</td><td>{latest?.SavedAt-latest?.CreatedAt}</td><td>{latest?.SequencedAt-latest?.CreatedAt}</td>";
+        var processedStreamInfo = processedStreamMsg == null ? string.Empty : $"{processedStreamMsg.StreamId} ({processedStreamIds.IndexOf(processedStreamMsg.StreamId)})";
+        var pendingStreamInfo = pendingStreamMsg == null ? string.Empty : $"{pendingStreamMsg.StreamId} ({pendingStreamIds.IndexOf(pendingStreamMsg.StreamId)})";
+        html += $"<td>{pendingStreamInfo}</td></tr>\n";
+    }
+    html += "</table></body></html>";
+
+    return Results.Content(html, "text/html", System.Text.Encoding.UTF8, 200);
 });
 
 app.Run();

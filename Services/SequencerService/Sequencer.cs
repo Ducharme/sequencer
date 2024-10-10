@@ -30,7 +30,7 @@ namespace SequencerService
             return int.TryParse(posEnvVar, out int result) ? result : 0;
         }
 
-        private async Task<bool> HandleSequencingMessages(Dictionary<string, MyMessage> dic)
+        private async Task<bool> HandleSequencingMessages(Dictionary<string, MyStreamMessage> dic)
         {
             var orderedBySequence = dic.Select(kvp => kvp.Value).OrderBy(mm => mm.Sequence).ToList();
             if (database_client != null)

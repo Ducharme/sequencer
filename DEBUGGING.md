@@ -53,6 +53,7 @@ Get the endpoint with the first command and replace the value for the host in th
 ```
 aws elasticache describe-serverless-caches --serverless-cache-name sequencer-redis --query 'ServerlessCaches[0].Endpoint.Address' --output text
 redis-cli -h sequencer-redis-abcd1234.serverless.reg.cache.amazonaws.com -p 6379 --tls
+docker exec -it $(docker ps | grep "redis" | cut -d " " -f 1) redis-cli
 ```
 Once connected
 ```

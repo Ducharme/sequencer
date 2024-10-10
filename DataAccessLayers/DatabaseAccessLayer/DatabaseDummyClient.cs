@@ -9,7 +9,7 @@ namespace DatabaseAccessLayer
             return true;
         }
 
-        public DateTime InsertMessages(List<MyMessage> mms)
+        public DateTime InsertMessages<M>(List<M> mms) where M : MyMessage
         {
             var now = DateTime.Now;
             var utcOffset = TimeZoneInfo.Local.GetUtcOffset(now);

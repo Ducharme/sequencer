@@ -104,12 +104,12 @@ namespace AdminService
             return await list_stream_manager.GetFullSequencedList();
         }
 
-        public async Task<List<MyMessage>> GetAllMessagesFromPendingStream(string name)
+        public async Task<List<MyStreamMessage>> GetAllMessagesFromSequencedStream(string name)
         {
-            return await list_stream_manager.GetFullPendingStream();
+            return await list_stream_manager.GetFullSequencedStream();
         }
 
-        public async Task<List<MyMessage>> GetAllMessagesFromProcessedStream(string name)
+        public async Task<List<MyStreamMessage>> GetAllMessagesFromProcessedStream(string name)
         {
             return await list_stream_manager.GetFullProcessedStream();
         }
