@@ -15,14 +15,14 @@ namespace CommonTypes
 
     public static class SequenceHelper
     {
-        public static Sequence GetSequence(long? lastProcessedSequenceId, List<long> orderedIds)
+        public static Sequence GetSequence(long? lastProcessedSequenceId, IOrderedEnumerable<long> orderedIds)
         {
             var sequence = new Sequence()
             {
                 LastProcessed = lastProcessedSequenceId,
                 Min = orderedIds.First(),
                 Max = orderedIds.Last(),
-                Count = orderedIds.Count,
+                Count = orderedIds.Count(),
                 List = new List<long>(),
                 LastInOrder = -1,
                 ExpectedNext = -1,
@@ -30,15 +30,16 @@ namespace CommonTypes
                 IsComplete = false
             };
             
-            var firstMessageOk = (lastProcessedSequenceId ?? 0) + 1 == orderedIds[0];
+            var firstValue = orderedIds.First();
+            var firstMessageOk = (lastProcessedSequenceId ?? 0) + 1 == firstValue;
             if (firstMessageOk)
             {
-                sequence.List.Add(orderedIds[0]);
-                for (var i=1; i < orderedIds.Count; i++)
+                sequence.List.Add(firstValue);
+                for (var i=1; i < orderedIds.Count(); i++)
                 {
-                    var current = orderedIds[i-1];
+                    var current = orderedIds.ElementAt(i-1);
                     var expectedNext = current + 1;
-                    var next = orderedIds[i];
+                    var next = orderedIds.ElementAt(i);
                     if (expectedNext != next)
                     {
                         sequence.LastInOrder = current;
@@ -54,9 +55,9 @@ namespace CommonTypes
             {
                 sequence.LastInOrder = lastProcessedSequenceId ?? -1;
                 sequence.ExpectedNext = (lastProcessedSequenceId ?? 0) + 1;
-                sequence.ActualNext = orderedIds[0];
+                sequence.ActualNext = firstValue;
             }
-            sequence.IsComplete = orderedIds.Count == sequence.List.Count;
+            sequence.IsComplete = orderedIds.Count() == sequence.List.Count;
             return sequence;
          }
     }

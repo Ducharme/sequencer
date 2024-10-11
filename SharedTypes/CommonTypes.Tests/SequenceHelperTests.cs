@@ -12,7 +12,7 @@ namespace CommonTypes.Tests
         {
             // Arrange
             long? lastProcessedSequenceId = 0;
-            var orderedIds = new List<long> { 1, 2, 3, 4, 5 };
+            var orderedIds = (IOrderedEnumerable<long>)new List<long> { 1, 2, 3, 4, 5 };
 
             // Act
             var result = SequenceHelper.GetSequence(lastProcessedSequenceId, orderedIds);
@@ -34,7 +34,7 @@ namespace CommonTypes.Tests
         {
             // Arrange
             long? lastProcessedSequenceId = 0;
-            var orderedIds = new List<long> { 1, 2, 3, 5, 6 };
+            var orderedIds = (IOrderedEnumerable<long>)new List<long> { 1, 2, 3, 5, 6 };
 
             // Act
             var result = SequenceHelper.GetSequence(lastProcessedSequenceId, orderedIds);
@@ -56,7 +56,7 @@ namespace CommonTypes.Tests
         {
             // Arrange
             long? lastProcessedSequenceId = 5;
-            var orderedIds = new List<long> { 6, 7, 8, 9, 10 };
+            var orderedIds = (IOrderedEnumerable<long>)new List<long> { 6, 7, 8, 9, 10 };
 
             // Act
             var result = SequenceHelper.GetSequence(lastProcessedSequenceId, orderedIds);
@@ -78,7 +78,7 @@ namespace CommonTypes.Tests
         {
             // Arrange
             long? lastProcessedSequenceId = 5;
-            var orderedIds = new List<long> { 7, 8, 9, 10 };
+            var orderedIds = (IOrderedEnumerable<long>)new List<long> { 7, 8, 9, 10 };
 
             // Act
             var result = SequenceHelper.GetSequence(lastProcessedSequenceId, orderedIds);
@@ -100,7 +100,7 @@ namespace CommonTypes.Tests
         {
             // Arrange
             long? lastProcessedSequenceId = 5;
-            var orderedIds = new List<long>();
+            var orderedIds = (IOrderedEnumerable<long>)new List<long>();
 
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() => SequenceHelper.GetSequence(lastProcessedSequenceId, orderedIds));
@@ -111,7 +111,7 @@ namespace CommonTypes.Tests
         {
             // Arrange
             long? lastProcessedSequenceId = null;
-            var orderedIds = new List<long> { 1, 2, 3, 4, 5 };
+            var orderedIds = (IOrderedEnumerable<long>)new List<long> { 1, 2, 3, 4, 5 };
 
             // Act
             var result = SequenceHelper.GetSequence(lastProcessedSequenceId, orderedIds);

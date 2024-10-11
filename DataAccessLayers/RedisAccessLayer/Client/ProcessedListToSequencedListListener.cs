@@ -208,19 +208,18 @@ namespace RedisAccessLayer
             Interlocked.Exchange(ref this.isExiting, 1);
         }
 
-        public static List<long> FindMissingSequenceIds(List<long> incomplete)
+        public static IOrderedEnumerable<long> FindMissingSequenceIds(IOrderedEnumerable<long> incomplete)
         {
             // Generate a range of long from min to max (inclusive)
             var fullRange = GenerateLongRange(incomplete);
             // Find the long in the range that are not in the incomplete list
-            return fullRange.Except(incomplete).ToList();
+            return fullRange.Except(incomplete).Order();
         }
 
-        private static IEnumerable<long> GenerateLongRange(List<long> incomplete)
+        private static IEnumerable<long> GenerateLongRange(IOrderedEnumerable<long> incomplete)
         {
-            long start = incomplete.Min();
-            long end = incomplete.Max();
-            for (long i = start; i <= end; i++)
+            var last = incomplete.Last();
+            for (var i = incomplete.First(); i <= last; i++)
             {
                 yield return i;
             }
@@ -241,7 +240,7 @@ namespace RedisAccessLayer
                     msm.SequencingAt = timestamp;
                 }
 
-                var ids = lst.Select(kvp => kvp.Sequence).Order().ToList(); // TODO: Remove Order()
+                var ids = lst.Select(msm => msm.Sequence).Order();
                 var sequence = SequenceHelper.GetSequence(LastProcessedSequenceId, ids);
                 if (logger.IsDebugEnabled)
                 {
@@ -250,6 +249,7 @@ namespace RedisAccessLayer
                         var missingIds = FindMissingSequenceIds(ids);
                         var missingIdsJoined = string.Join(",", missingIds.Order());
                         logger.Debug($"Sequence range is from {sequence.Min} to {sequence.Max} but ordered up to {sequence.LastInOrder}, expecting {sequence.ExpectedNext} but next is {sequence.ActualNext}. LastProcessedSequenceId={sequence.LastProcessed}, IsSequenceComplete={sequence.IsComplete}, PartialSequence.Count={sequence.List.Count}, MissingSequenceIds={missingIdsJoined}");
+                        logger.Debug($"Sequence is {string.Join(",", ids)}");
                     }
                     else
                     {
@@ -264,7 +264,8 @@ namespace RedisAccessLayer
                 }
                 else if (sequence.List.Count > 0)
                 {
-                    filtered = lst.Where(msm => sequence.List.Contains(msm.Sequence)).OrderBy(msm => msm.Sequence).ToList(); // TODO: Remove Order()
+                    //filtered = lst.Where(msm => sequence.List.Contains(msm.Sequence)).OrderBy(msm => msm.Sequence).ToList();
+                    filtered = lst.Where(msm => msm.Sequence <= sequence.LastInOrder).OrderBy(msm => msm.Sequence).ToList();
                 }
                 else
                 {
@@ -279,7 +280,7 @@ namespace RedisAccessLayer
                 }
                 else
                 {
-                    if (ids.Count > 0)
+                    if (ids.Count() > 0)
                     {
                         logger.Debug("Set last values explicitly by precaution");
                         await SetLastMessageFromSequencedStream();
@@ -343,11 +344,9 @@ namespace RedisAccessLayer
             Tuple<string?, long?> tuple;
             if (!se.IsNull)
             {
-                var entryIdNve = se.Values.FirstOrDefault(v => v.Name == MyMessageFieldNames.ColumnHighestEntryId);
                 var seqNve = se.Values.FirstOrDefault(v => v.Name == MyMessageFieldNames.Sequence);
-                string? entryId = entryIdNve == default || entryIdNve.Value.IsNullOrEmpty ? null : entryIdNve.Value.ToString();
                 long? seq = seqNve == default || seqNve.Value.IsNullOrEmpty ? null : long.Parse(seqNve.Value.ToString());
-                tuple = new (entryId, seq);
+                tuple = new ("NA", seq);
             }
             else
             {
