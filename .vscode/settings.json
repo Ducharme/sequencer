@@ -1,6 +1,13 @@
 {
-    "files.watcherExclude": {
-        "**/bin/**": false,
-        "**/obj/**": false
-    }
+    "dotnet-test-explorer.testFramework": "xunit",
+    "dotnet-test-explorer.testRunnerPath": "dotnet",
+    "dotnet-test-explorer.testProjectPath": "**/*Tests.csproj",
+    "dotnet-test-explorer.testArguments": "/p:CollectCoverage=true /p:CoverletOutputFormat=lcov /p:CoverletOutput=./lcov.info",
+    "dotnet-test-explorer.autoWatch": true,
+    "dotnet-test-explorer.showCodeLens": true,
+    "dotnet-test-explorer.codeLensFailed": "❌",
+    "dotnet-test-explorer.codeLensPassed": "✅",
+    "dotnet-test-explorer.autoExpandTree": false,
+    "dotnet-test-explorer.useTreeView": true,
+    "dotnet-test-explorer.customTestRegex": [ ".*Tests\\.dll" ]
 }

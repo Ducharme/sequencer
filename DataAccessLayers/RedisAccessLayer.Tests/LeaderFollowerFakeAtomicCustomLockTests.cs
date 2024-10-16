@@ -34,6 +34,8 @@ namespace RedisAccessLayer.Tests
                 .Returns((string script, RedisKey[] keys, RedisValue[] values, CommandFlags flags) => _redis.ScriptEvaluateAsync(script, keys, values, flags));
             _databaseMock.Setup(db => db.ScriptEvaluateAsync(AtomicCustomLock.ExtendScript, It.IsAny<RedisKey[]>(), It.IsAny<RedisValue[]>(), It.IsAny<CommandFlags>()))
                 .Returns((string script, RedisKey[] keys, RedisValue[] values, CommandFlags flags) => _redis.ScriptEvaluateAsync(script, keys, values, flags));
+            _databaseMock.Setup(db => db.ScriptEvaluateAsync(AtomicCustomLock.ReleaseScript, It.IsAny<RedisKey[]>(), It.IsAny<RedisValue[]>(), It.IsAny<CommandFlags>()))
+                .Returns((string script, RedisKey[] keys, RedisValue[] values, CommandFlags flags) => _redis.ScriptEvaluateAsync(script, keys, values, flags));
             _databaseMock.Setup(db => db.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
                 .Returns((RedisKey key, CommandFlags flags) => _redis.StringGetAsync(key, flags));
 

@@ -140,6 +140,14 @@ namespace RedisAccessLayer
                         }
 
                         newMessageEvent.Reset();
+                        listen = Interlocked.Read(ref this.shouldListen);
+                        if (listen != 1)
+                        {
+                            logger.Debug($"Trying to ReleaseLock");
+                            await syncLock.ReleaseLock();
+                            continue;
+                        }
+
                         var entries = await rcm.StreamReadAsync(processedStreamKey, StreamPosition.Beginning);
                         logger.Debug($"StreamReadAsync entries={entries.Length}");
                         if (entries.Length > 0)
@@ -431,6 +439,11 @@ namespace RedisAccessLayer
 
         public async Task<Tuple<bool, string, long>> FromProcessedToSequenced(List<MyStreamMessage> msms)
         {
+            if (msms.Count == 0)
+            {
+                throw new InvalidOperationException("Cannot process an empty list of messages");
+            }
+
             long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var lst = new List<Tuple<string, NameValueEntry[]>>();
             foreach (var msm in msms)
@@ -463,6 +476,13 @@ namespace RedisAccessLayer
             }
             
             return new Tuple<bool, string, long>(committed, "NA", highestSequence);
+        }
+
+        public override void Dispose()
+        {
+            StopListening();
+            newMessageEvent.Set();
+            base.Dispose();
         }
     }
 }

@@ -12,7 +12,7 @@ namespace CommonTypes.Tests
         {
             // Arrange
             long? lastProcessedSequenceId = 0;
-            var orderedIds = (IOrderedEnumerable<long>)new List<long> { 1, 2, 3, 4, 5 };
+            var orderedIds = (new List<long> { 1, 2, 3, 4, 5 }).Order();
 
             // Act
             var result = SequenceHelper.GetSequence(lastProcessedSequenceId, orderedIds);
@@ -34,7 +34,7 @@ namespace CommonTypes.Tests
         {
             // Arrange
             long? lastProcessedSequenceId = 0;
-            var orderedIds = (IOrderedEnumerable<long>)new List<long> { 1, 2, 3, 5, 6 };
+            var orderedIds = (new List<long> { 1, 2, 3, 5, 6 }).Order();
 
             // Act
             var result = SequenceHelper.GetSequence(lastProcessedSequenceId, orderedIds);
@@ -56,7 +56,7 @@ namespace CommonTypes.Tests
         {
             // Arrange
             long? lastProcessedSequenceId = 5;
-            var orderedIds = (IOrderedEnumerable<long>)new List<long> { 6, 7, 8, 9, 10 };
+            var orderedIds = (new List<long> { 6, 7, 8, 9, 10 }).Order();
 
             // Act
             var result = SequenceHelper.GetSequence(lastProcessedSequenceId, orderedIds);
@@ -78,7 +78,7 @@ namespace CommonTypes.Tests
         {
             // Arrange
             long? lastProcessedSequenceId = 5;
-            var orderedIds = (IOrderedEnumerable<long>)new List<long> { 7, 8, 9, 10 };
+            var orderedIds = (new List<long> { 7, 8, 9, 10 }).Order();
 
             // Act
             var result = SequenceHelper.GetSequence(lastProcessedSequenceId, orderedIds);
@@ -89,9 +89,9 @@ namespace CommonTypes.Tests
             Assert.Equal(10, result.Max);
             Assert.Equal(4, result.Count);
             Assert.Empty(result.List);
-            Assert.Equal(-1, result.LastInOrder);
-            Assert.Equal(-1, result.ExpectedNext);
-            Assert.Equal(-1, result.ActualNext);
+            Assert.Equal(lastProcessedSequenceId, result.LastInOrder);
+            Assert.Equal(lastProcessedSequenceId + 1, result.ExpectedNext);
+            Assert.Equal(orderedIds.First(), result.ActualNext);
             Assert.False(result.IsComplete);
         }
 
@@ -100,7 +100,7 @@ namespace CommonTypes.Tests
         {
             // Arrange
             long? lastProcessedSequenceId = 5;
-            var orderedIds = (IOrderedEnumerable<long>)new List<long>();
+            var orderedIds = (new List<long>()).Order();
 
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() => SequenceHelper.GetSequence(lastProcessedSequenceId, orderedIds));
@@ -111,7 +111,7 @@ namespace CommonTypes.Tests
         {
             // Arrange
             long? lastProcessedSequenceId = null;
-            var orderedIds = (IOrderedEnumerable<long>)new List<long> { 1, 2, 3, 4, 5 };
+            var orderedIds = (new List<long> { 1, 2, 3, 4, 5 }).Order();
 
             // Act
             var result = SequenceHelper.GetSequence(lastProcessedSequenceId, orderedIds);
