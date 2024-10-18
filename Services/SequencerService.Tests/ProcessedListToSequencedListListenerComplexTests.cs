@@ -560,12 +560,12 @@ public class ProcessedListToSequencedListListenerComplexTests : IDisposable
 
         // Act
         Task listenTask = Task.Run(() => _listener.ListenForPendingMessages(handler));
-        await Task.Delay(2500); // Allow some time for reconnection attempts, LongWaitTime is 1000 ms
+        await Task.Delay(1200); // Allow some time for reconnection attempts, LongWaitTime is 1000 ms
         _listener.StopListening();
 
         // Assert
-        Assert.ThrowsAsync<RedisTimeoutException>(() => listenTask);
         Assert.False(handlerCalled);
+        Assert.True(reconnectCallCount == 1);
         _mockRedisConnectionManager.Verify(m => m.Reconnect(), Times.AtLeastOnce);
     }
 
