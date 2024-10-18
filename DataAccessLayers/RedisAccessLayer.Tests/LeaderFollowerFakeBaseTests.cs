@@ -13,15 +13,14 @@ namespace RedisAccessLayer.Tests
         protected const int BufferTime = 100;
         protected const int WaitTime = 100;
         protected const int LongWaitTime = 1000;
-        protected async Task<bool> RunLoop(ISyncLock syncLock, int index, int [] releaseAtIndices)
+        protected async Task<bool> RunLoop(ISyncLock syncLock, int index, int [] releaseAtIndices, int maxCount = 15)
         {
-            const int MaxCount = 15;
             var counter = 0;
             bool? isLeader = null;
             var defaultLockTime = syncLock.LockExpiry;
             var lastLeaderAttempt = DateTime.MinValue;
             var releaseLock = false;
-            while (counter < MaxCount)
+            while (counter < maxCount)
             {
                 try
                 {

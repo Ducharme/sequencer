@@ -66,7 +66,7 @@ namespace RedisAccessLayer
                         logger.Warn("Redis client encountered a timeout while subscribing, pending to exit");
                     }
                 }
-                catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisConnectionException || ex is RedisException)
+                catch (Exception ex) when (ex is RedisServerException || ex is RedisConnectionException || ex is RedisException)
                 {
                     listen = Interlocked.Read(ref this.shouldListen);
                     exiting = Interlocked.Read(ref this.isExiting);
@@ -79,6 +79,12 @@ namespace RedisAccessLayer
                     {
                         logger.Warn("Redis client encountered an error while subscribing, pending to exit");
                     }
+                }
+                catch (Exception ex)
+                {
+                    logger.Fatal("Fatal error while subscribing, pending to exit", ex);
+                    StopListening();
+                    break;
                 }
             }
 
@@ -199,7 +205,7 @@ namespace RedisAccessLayer
                         logger.Warn("Redis client encountered a timeout while listening, pending to exit");
                     }
                 }
-                catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisConnectionException || ex is RedisException) // Error with RedisCommandException should exit
+                catch (Exception ex) when (ex is RedisServerException || ex is RedisConnectionException || ex is RedisException) // Error with RedisCommandException should exit
                 {
                     listen = Interlocked.Read(ref this.shouldListen);
                     if (listen == 1)
@@ -211,6 +217,12 @@ namespace RedisAccessLayer
                     {
                         logger.Warn("Redis client encountered an error while listening, pending to exit");
                     }
+                }
+                catch (Exception ex)
+                {
+                    logger.Fatal("Fatal error while listening, pending to exit", ex);
+                    StopListening();
+                    break;
                 }
             }
             Interlocked.Exchange(ref this.isExiting, 1);

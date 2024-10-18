@@ -30,8 +30,10 @@ namespace RedisAccessLayer.Tests
         public async void AcquireLock_OnlyOneLeader_ExtendNearExpiry()
         {
             // Arrange
-            _databaseMock.Setup(db => db.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            _databaseMock.Setup(db => db.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), When.NotExists, It.IsAny<CommandFlags>()))
                 .Returns((RedisKey key, RedisValue value, TimeSpan? expiry, When when, CommandFlags flags) => _redis.StringSetAsync(key, value, expiry, when, flags));
+            _databaseMock.Setup(db => db.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), When.Exists, It.IsAny<CommandFlags>()))
+                .Returns((RedisKey key, RedisValue value, TimeSpan expiry, When when, CommandFlags flags) => _redis.StringSetAsync(key, value, expiry, when, flags));
             _databaseMock.Setup(db => db.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
                 .Returns((RedisKey key, CommandFlags flags) => _redis.StringGetAsync(key, flags));
 
@@ -46,6 +48,7 @@ namespace RedisAccessLayer.Tests
             // Assert
             var sum = results.Select(r => r == false ? 0 : 1).Sum();
             Assert.Equal(1, sum);
+            //_databaseMock.Verify(db => db.LockExtendAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), It.IsAny<CommandFlags>()), Times.AtLeastOnce); // BUG: Times.Exactly(1)
         }
 
         [Fact]

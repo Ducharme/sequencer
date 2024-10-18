@@ -27,4 +27,11 @@
     <ProjectReference Include="../../DataAccessLayers/RedisAccessLayer/RedisAL.csproj" />
     <ProjectReference Include="../CommonServiceLib/CommonServiceLib.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="../SequencerService/log4net.config">
+      <Link>log4net.config</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>
