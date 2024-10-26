@@ -10,6 +10,12 @@ namespace RedisAccessLayer
         private readonly RedisChannel PendingNewMessagesChannel;
         private static readonly ILog logger = LogManager.GetLogger(typeof(ListStreamAdminClient));
 
+        private static List<MyMessage> pendingListCache = null;
+        private static List<MyMessage> processingListCache = null;
+        private static List<MyMessage> sequencedListCache = null;
+        private static object cachelLock = new();
+
+
         public ListStreamAdminClient(IRedisConnectionManager cm)
             : base(cm)
         {
@@ -20,17 +26,66 @@ namespace RedisAccessLayer
 
         public async Task<List<MyMessage>> GetFullPendingList()
         {
-            return await GetFullList(pendingListKey);
+            lock (cachelLock)
+            {
+                if (pendingListCache != null)
+                {
+                    return pendingListCache;
+                }
+            }
+
+            var lst = await GetFullList(pendingListKey);
+            lock (cachelLock)
+            {
+                pendingListCache = lst;
+            }
+            return lst;
         }
 
         public async Task<List<MyMessage>> GetFullProcessingList()
         {
-            return await GetFullList(processingListKey);
+            lock (cachelLock)
+            {
+                if (processingListCache != null)
+                {
+                    return processingListCache;
+                }
+            }
+
+            var lst = await GetFullList(processingListKey);
+            lock (cachelLock)
+            {
+                processingListCache = lst;
+            }
+            return lst;
         }
 
         public async Task<List<MyMessage>> GetFullSequencedList()
         {
-            return await GetFullList(sequencedListKey);
+            lock (cachelLock)
+            {
+                if (sequencedListCache != null)
+                {
+                    return sequencedListCache;
+                }
+            }
+            
+            var lst = await GetFullList(sequencedListKey);
+            lock (cachelLock)
+            {
+                sequencedListCache = lst;
+            }
+            return lst;
+        }
+
+        public void ClearCache()
+        {
+            lock (cachelLock)
+            {
+                pendingListCache = null;
+                processingListCache = null;
+                sequencedListCache = null;
+            }
         }
 
         private async Task<List<MyMessage>> GetFullList(string listKey)

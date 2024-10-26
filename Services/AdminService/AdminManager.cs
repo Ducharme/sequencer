@@ -129,6 +129,11 @@ namespace AdminService
             return await list_stream_manager.GetSequencedStreamLastMessage();
         }
 
+        public void ClearCache()
+        {
+            list_stream_manager.ClearCache();
+        }
+
         public async Task<string> RedisServerInfos()
         {
             return await list_stream_manager.RedisServerInfos();

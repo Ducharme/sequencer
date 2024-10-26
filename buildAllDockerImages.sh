@@ -1,20 +1,32 @@
 #!/bin/sh
 
 BASE_VERSION=0.0.2
-MAIN_VERSION=0.0.26
 DOTNET_SDK_VERSION=8.0.402-bookworm-slim
 DOTNET_RUNTIME_VERSION=8.0.8-bookworm-slim
 DOTNET_ASPNET_VERSION=8.0.8-bookworm-slim
 DD_TRACER_VERSION=3.3.1
 REPO_NAME=claudeducharme
-#DD_TRACER_VERSION=$(curl -s https://api.github.com/repos/DataDog/dd-trace-dotnet/releases/latest | grep tag_name | cut -d '"' -f 4 | cut -c2-)
 
 FOLDER=$(pwd)
 
 build_arg_1=$1 # --progress=plain
 build_arg_2=$2 # --no-cache 
 
+#DD_TRACER_VERSION=$(curl -s https://api.github.com/repos/DataDog/dd-trace-dotnet/releases/latest | grep tag_name | cut -d '"' -f 4 | cut -c2-)
+
 echo "Building arguments: $build_arg_1 $build_arg_2"
+
+get_latest_version() {
+    local image_name=$1
+    #curl -L -s "https://hub.docker.com/v2/repositories/claudeducharme/sequencerwebservice/tags?page_size=5" | jq -r '.results[0].name' | cut -d'-' -f1
+    local link="https://hub.docker.com/v2/repositories/$REPO_NAME/$image_name/tags?page_size=5"
+    local version=$(curl -L -s "$link" | jq -r '.results[0].name' | cut -d'-' -f1)
+    if [ $? -ne 0 ]; then
+        echo "Could not fetch latest image version from $link"
+        exit 3
+    fi
+    echo "$version"
+}
 
 # Function to split string into arguments
 split_args() {
@@ -77,6 +89,12 @@ check_and_pull_or_build_image() {
     fi
 }
 
+AWP_VER=$(get_latest_version "adminwebportal")
+PWS_VER=$(get_latest_version "processorwebservice")
+SWS_VER=$(get_latest_version "sequencerwebservice")
+LAST_MAIN_VERSION=$(echo "$AWP_VER $PWS_VER $SWS_VER" | tr ' ' '\n' | sort -V | tail -n1)
+MAIN_VERSION=$(echo "$LAST_MAIN_VERSION" | awk -F. '{$3++; print $1"."$2"."$3}')
+echo "MAIN_VERSION=$MAIN_VERSION BASE_VERSION=$BASE_VERSION DOTNET_SDK_VERSION=$DOTNET_SDK_VERSION DOTNET_RUNTIME_VERSION=$DOTNET_RUNTIME_VERSION DOTNET_ASPNET_VERSION=$DOTNET_ASPNET_VERSION DD_TRACER_VERSION=$DD_TRACER_VERSION REPO_NAME=$REPO_NAME"
 
 BASE_IMAGE_NAME=sequencer-base
 BASE_DEP_TAG="datadog$DD_TRACER_VERSION"

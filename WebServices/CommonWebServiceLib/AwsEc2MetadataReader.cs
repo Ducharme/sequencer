@@ -106,7 +106,7 @@ public static class AwsEc2MetadataReader
             }
 
             string join = string.Join("; ", allDic.Select(kvp => $"{kvp.Key}:{kvp.Value}"));
-            logger.Info("Dictionary\n" + join);
+            logger.Info("Dictionary " + join);
         }
         catch (Exception ex)
         {

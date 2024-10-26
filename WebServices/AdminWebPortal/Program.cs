@@ -251,6 +251,14 @@ app.MapGet("/list/perfs", async ([FromQuery] string name, [FromQuery] long start
     }
 });
 
+app.MapDelete("/list/cache", () => {
+    logger.Info($"Called DELETE /list/cache");
+    {
+        adm.ClearCache();
+        return Results.Ok();
+    }
+});
+
 app.MapGet("/redis/infos", async () => {
     var res = await adm.RedisServerInfos();
     return Results.Json(new { res });

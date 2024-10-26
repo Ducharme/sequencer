@@ -383,7 +383,7 @@ public class ProcessedListToSequencedListListenerComplexTests : IDisposable
         await listenTask;
 
         // Assert
-        Assert.Equal(handlerCallCount, 1);
+        Assert.Equal(1, handlerCallCount);
         _mockRedisConnectionManager.Verify(m => m.StreamReadAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>()), Times.AtLeast(2));
     }
 

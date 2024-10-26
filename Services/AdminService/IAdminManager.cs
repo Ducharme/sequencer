@@ -13,6 +13,7 @@ namespace AdminService
         Task<List<MyMessage>> GetAllMessagesFromPendingList(string name);
         Task<List<MyMessage>> GetAllMessagesFromProcessingList(string name);
         Task<List<MyMessage>> GetAllMessagesFromSequencedList(string name);
+        void ClearCache();
 
         Task<List<MyStreamMessage>> GetAllMessagesFromSequencedStream(string name);
         Task<List<MyStreamMessage>> GetAllMessagesFromProcessedStream(string name);
