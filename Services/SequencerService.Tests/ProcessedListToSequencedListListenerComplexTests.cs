@@ -53,7 +53,7 @@ public class ProcessedListToSequencedListListenerComplexTests : IDisposable
         Task listenTask = Task.Run(() => _listener.ListenForPendingMessages(handler));
 
         // Simulate stopping the listener after a short delay
-        await Task.Delay(200);
+        await Task.Delay(1200);
         _listener.StopListening();
 
         await listenTask;

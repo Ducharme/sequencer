@@ -13,7 +13,7 @@ namespace CommonTypes.Tests
         }
 
         [Fact]
-        public void Constructor_WithValidMessages_ShouldCalculateRatesCorrectly()
+        public async Task Constructor_WithValidMessages_ShouldCalculateRatesCorrectly()
         {
             // Arrange
             var messages = new List<MyMessage>
@@ -26,7 +26,7 @@ namespace CommonTypes.Tests
             };
 
             // Act
-            var perfs = new Perfs(messages);
+            var perfs = await Perfs.CreateAsync(messages);
 
             // Assert
             Assert.Equal(3, perfs.ProcessingRatePerSecond.Count);
@@ -46,13 +46,13 @@ namespace CommonTypes.Tests
         }
 
         [Fact]
-        public void Constructor_WithEmptyMessages_ShouldHandleGracefully()
+        public async Task Constructor_WithEmptyMessages_ShouldHandleGracefully()
         {
             // Arrange
             var messages = new List<MyMessage>();
 
             // Act
-            var perfs = new Perfs(messages);
+            var perfs = await Perfs.CreateAsync(messages);
 
             // Assert
             Assert.Empty(perfs.ProcessingRatePerSecond);
@@ -63,7 +63,7 @@ namespace CommonTypes.Tests
         }
 
         [Fact]
-        public void Constructor_WithSingleMessage_ShouldCalculateRatesCorrectly()
+        public async Task Constructor_WithSingleMessage_ShouldCalculateRatesCorrectly()
         {
             // Arrange
             var messages = new List<MyMessage>
@@ -72,7 +72,7 @@ namespace CommonTypes.Tests
             };
 
             // Act
-            var perfs = new Perfs(messages);
+            var perfs = await Perfs.CreateAsync(messages);
 
             // Assert
             Assert.Single(perfs.ProcessingRatePerSecond);
@@ -85,7 +85,7 @@ namespace CommonTypes.Tests
         }
 
         [Fact]
-        public void Constructor_WithMessagesSpanningMultipleSeconds_ShouldCalculateRatesCorrectly()
+        public async Task Constructor_WithMessagesSpanningMultipleSeconds_ShouldCalculateRatesCorrectly()
         {
             // Arrange
             var messages = new List<MyMessage>
@@ -98,7 +98,7 @@ namespace CommonTypes.Tests
             };
 
             // Act
-            var perfs = new Perfs(messages);
+            var perfs = await Perfs.CreateAsync(messages);
 
             // Assert
             Assert.Equal(5, perfs.ProcessingRatePerSecond.Count);

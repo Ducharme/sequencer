@@ -35,7 +35,7 @@ public abstract class RedisHealthCheckBase
 
 public class RedisCachedHealthCheck : RedisHealthCheckBase
 {
-    private static readonly ILog logger = LogManager.GetLogger(typeof(RedisPingHealthCheck));
+    private static readonly ILog logger = LogManager.GetLogger(typeof(RedisCachedHealthCheck));
 
     public RedisCachedHealthCheck(IServiceProvider serviceProvider) : base(serviceProvider) { }
 
@@ -65,9 +65,9 @@ public class RedisPingHealthCheck : RedisHealthCheckBase
     {
         try
         {
-            var response = await _rcm.Ping();
+            TimeSpan response = await _rcm.Ping();
             logger.Debug($"RedisConnectionManager Ping returned {response}");
-            return response.TotalNanoseconds > 0 ? 200 : 500;
+            return response.TotalMilliseconds > 0.0 ? 200 : 500;
         }
         catch (Exception ex)
         {

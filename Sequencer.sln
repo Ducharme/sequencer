@@ -21,7 +21,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProcessorService", "Service
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SequencerService", "Services\SequencerService\SequencerService.csproj", "{D3B5C2D9-8D3D-4A0B-9F7A-7E1E8A5F6442}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SequencerService.Tests", "Services\SequencerService.Tests\SequencerService.Tests.csproj", "{7A1B3C4D-E5F6-47G8-H9I0-J1K2L3M4N5O6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SequencerService.Tests", "Services\SequencerService.Tests\SequencerService.Tests.csproj", "{E5F82C1D-A463-4B7A-9D85-3F2910584E6B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdminWebPortal", "WebServices\AdminWebPortal\AdminWebPortal.csproj", "{D3C2E9A8-8B4F-4E7D-9C3A-0F1B2D6E5A7F}"
 EndProject
@@ -77,10 +77,10 @@ Global
 		{D3B5C2D9-8D3D-4A0B-9F7A-7E1E8A5F6442}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D3B5C2D9-8D3D-4A0B-9F7A-7E1E8A5F6442}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D3B5C2D9-8D3D-4A0B-9F7A-7E1E8A5F6442}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7A1B3C4D-E5F6-47G8-H9I0-J1K2L3M4N5O6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7A1B3C4D-E5F6-47G8-H9I0-J1K2L3M4N5O6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7A1B3C4D-E5F6-47G8-H9I0-J1K2L3M4N5O6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7A1B3C4D-E5F6-47G8-H9I0-J1K2L3M4N5O6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5F82C1D-A463-4B7A-9D85-3F2910584E6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5F82C1D-A463-4B7A-9D85-3F2910584E6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5F82C1D-A463-4B7A-9D85-3F2910584E6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5F82C1D-A463-4B7A-9D85-3F2910584E6B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D3C2E9A8-8B4F-4E7D-9C3A-0F1B2D6E5A7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D3C2E9A8-8B4F-4E7D-9C3A-0F1B2D6E5A7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D3C2E9A8-8B4F-4E7D-9C3A-0F1B2D6E5A7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -97,6 +97,10 @@ Global
 		{7E5F8D9A-1B0C-4E6F-A3D2-5B4C8F0E9A7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E5F8D9A-1B0C-4E6F-A3D2-5B4C8F0E9A7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E5F8D9A-1B0C-4E6F-A3D2-5B4C8F0E9A7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F18859D5-F793-40CA-B0D6-DA0E7AD222B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F18859D5-F793-40CA-B0D6-DA0E7AD222B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F18859D5-F793-40CA-B0D6-DA0E7AD222B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F18859D5-F793-40CA-B0D6-DA0E7AD222B1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{15299EE8-486C-45EA-B187-BC70A6AD0237}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{15299EE8-486C-45EA-B187-BC70A6AD0237}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{15299EE8-486C-45EA-B187-BC70A6AD0237}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -107,8 +111,5 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {74C18846-7D91-45CE-9F8C-2C609F98133A}
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{15299EE8-486C-45EA-B187-BC70A6AD0237} = {F18859D5-F793-40CA-B0D6-DA0E7AD222B1}
 	EndGlobalSection
 EndGlobal

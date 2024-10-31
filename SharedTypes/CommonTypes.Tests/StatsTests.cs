@@ -8,7 +8,7 @@ namespace CommonTypes.Tests
     public class StatsTests
     {
         [Fact]
-        public void Constructor_WithValidMessages_ShouldCalculateStatsCorrectly()
+        public async Task Constructor_WithValidMessages_ShouldCalculateStatsCorrectly()
         {
             // Arrange
             var messages = new List<MyMessage>
@@ -19,7 +19,7 @@ namespace CommonTypes.Tests
             };
 
             // Act
-            var stats = new Stats(messages);
+            var stats = await Stats.CreateAsync(messages);
 
             // Assert
             Assert.Equal(100, stats.CreatedToProcessingStats["min"]);
@@ -36,23 +36,23 @@ namespace CommonTypes.Tests
         }
 
         [Fact]
-        public void Constructor_WithEmptyMessages_ShouldHandleGracefully()
+        public async Task Constructor_WithEmptyMessages_ShouldHandleGracefully()
         {
             // Arrange
             var messages = new List<MyMessage>();
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => new Stats(messages));
+            await Assert.ThrowsAsync<ArgumentException>(async () => await Stats.CreateAsync(messages));
         }
 
         [Fact]
         public void GetStats_WithValidValues_ShouldCalculateCorrectly()
         {
             // Arrange
-            var values = new List<long> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+            var values = new List<long> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }.Order();
 
             // Act
-            var result = Stats.GetStats(values);
+            var result = Stats.GetStats(values.Order());
 
             // Assert
             Assert.Equal(5.5, result["50p"]);
@@ -68,7 +68,7 @@ namespace CommonTypes.Tests
         public void CalculatePercentile_WithValidValues_ShouldCalculateCorrectly()
         {
             // Arrange
-            var values = new List<long> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+            var values = new List<long> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }.Order();
 
             // Act & Assert
             Assert.Equal(5.5, Stats.CalculatePercentile(values, 0.5));
@@ -81,14 +81,14 @@ namespace CommonTypes.Tests
         public void CalculatePercentile_WithEmptyList_ShouldThrowArgumentException()
         {
             // Arrange
-            var values = new List<long>();
+            var values = new List<long>().Order();
 
             // Act & Assert
             Assert.Throws<ArgumentException>(() => Stats.CalculatePercentile(values, 0.5));
         }
 
         [Fact]
-        public void Constructor_WithSingleMessage_ShouldCalculateStatsCorrectly()
+        public async Task Constructor_WithSingleMessage_ShouldCalculateStatsCorrectly()
         {
             // Arrange
             var messages = new List<MyMessage>
@@ -97,7 +97,7 @@ namespace CommonTypes.Tests
             };
 
             // Act
-            var stats = new Stats(messages);
+            var stats = await Stats.CreateAsync(messages);
 
             // Assert
             Assert.Equal(100, stats.CreatedToProcessingStats["min"]);

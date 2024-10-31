@@ -199,7 +199,7 @@ app.MapGet("/list/stats", async ([FromQuery] string name, [FromQuery] long start
             return Results.Json(res.Result);
         }
 
-        var stats = new Stats(filtered);
+        var stats = await Stats.CreateAsync(filtered);
         var check = new OrderingCheck(filtered);
         var obj = new { start, filtered.Count, stats, check };
         return Results.Json(obj);
@@ -234,7 +234,7 @@ app.MapGet("/list/perfs", async ([FromQuery] string name, [FromQuery] long start
             return Results.Json(res.Result);
         }
 
-        var perfs = new Perfs(filtered);
+        var perfs = await Perfs.CreateAsync(filtered);
         var obj = new { start, filtered.Count, perfs };
         return Results.Json(obj);
     }
