@@ -10,10 +10,10 @@ namespace RedisAccessLayer
         private readonly RedisChannel PendingNewMessagesChannel;
         private static readonly ILog logger = LogManager.GetLogger(typeof(ListStreamAdminClient));
 
-        private static List<MyMessage> pendingListCache = null;
-        private static List<MyMessage> processingListCache = null;
-        private static List<MyMessage> sequencedListCache = null;
-        private static object cachelLock = new();
+        private List<MyMessage>? pendingListCache = null;
+        private List<MyMessage>? processingListCache = null;
+        private List<MyMessage>? sequencedListCache = null;
+        private readonly object cachelLock = new();
 
 
         public ListStreamAdminClient(IRedisConnectionManager cm)
