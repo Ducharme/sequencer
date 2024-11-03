@@ -212,6 +212,55 @@ end";
             }
         }
 
+        public async Task<List<StreamEntry>> StreamReadAllAsync(RedisKey key, int batchSize = 1000)
+        {
+            var allEntries = new List<StreamEntry>();
+            var position = "0-0"; // Start from beginning
+            const int minBatchSize = 100;
+            
+            if (logger.IsDebugEnabled)
+            {
+                logger.Debug($"StreamReadAllAsync {key} with batchSize={batchSize}");
+            }
+
+            while (true)
+            {
+                try
+                {
+                    var batch = await Database.StreamReadAsync(key: key, position: position, count: batchSize, CommandFlags.None);
+                    if (batch == null || batch.Length == 0)
+                    {
+                        break;
+                    }
+                    allEntries.AddRange(batch);
+                    
+                    // Update position to last entry's id for next batch
+                    position = batch[^1].Id; // index from end operator
+                    
+                    // Add small delay to prevent overloading
+                    await Task.Delay(10);
+                }
+                catch (RedisTimeoutException ex)
+                {
+                    if (batchSize <= minBatchSize)
+                    {
+                        hasError = true;
+                        logger.Error($"StreamReadAllAsync {key} timeout at position {position}, batch size reached minimum of {minBatchSize}, throwing", ex);
+                        throw;
+                    }
+
+                    // Reduce batch size and retry
+                    var newBatchSize = Math.Max(minBatchSize, batchSize / 2);
+                    logger.Error($"StreamReadAllAsync {key} timeout at position {position}, batch size {batchSize} reducing to {newBatchSize}, retrying", ex);
+                    batchSize = newBatchSize;
+                    continue;
+                }
+            }
+
+            hasError = false;
+            return allEntries;
+        }
+
         public async Task<string> ListGetByIndexAsync(RedisKey key, long index)
         {
             try
@@ -248,6 +297,93 @@ end";
             {
                 hasError = true;
                 logger.Error($"ListRangeAsync key={key} with start={start} and stop={stop} failed", ex);
+                throw;
+            }
+        }
+
+        public async Task<List<RedisValue>> ListAllAsync(RedisKey key, int batchSize = 1000)
+        {
+            try
+            {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ListAllAsync key={key} with batchSize={batchSize}");
+                }
+
+                var startTime = DateTime.Now;
+                var result = new List<RedisValue>();
+                var listLength = await Database.ListLengthAsync(key);
+
+                for (long currentStart = 0; currentStart < listLength; currentStart += batchSize)
+                {
+                    var currentStop = Math.Min(currentStart + batchSize - 1, listLength - 1);
+                    var batch = await Database.ListRangeAsync(key: key, start: currentStart, stop: currentStop, flags: DefaultCommandFlags) ?? [];
+                    result.AddRange(batch);
+                    if (batch.Length < batchSize)
+                    {
+                        break;
+                    }
+                    // Add small delay between batches
+                    await Task.Delay(10);
+                }
+
+                if (logger.IsDebugEnabled)
+                {
+                    var duration = DateTime.Now.Subtract(startTime);
+                    logger.Debug($"ListAllAsync key={key} with batchSize={batchSize} took {duration.TotalSeconds.ToString("F2")} seconds for {result.Count} items");
+                }
+                hasError = false;
+                return result;
+            }
+            catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisCommandException || ex is RedisConnectionException || ex is RedisException)
+            {
+                hasError = true;
+                logger.Error($"ListAllAsync key={key} with batchSize={batchSize} failed", ex);
+                throw;
+            }
+        }
+
+        // Using pipelining (often better than parallel requests)
+        public async Task<List<RedisValue>> ListAllPipelinedAsync(RedisKey key, int batchSize = 1000)
+        {
+            try
+            {
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug($"ListAllPipelinedAsync key={key} with batchSize={batchSize}");
+                }
+                var startTime = DateTime.Now;
+                var result = new List<RedisValue>();
+                var listLength = await Database.ListLengthAsync(key);
+
+                var batch = Database.CreateBatch();
+                var tasks = new List<Task<RedisValue[]>>();
+
+                for (long currentStart = 0; currentStart < listLength; currentStart += batchSize)
+                {
+                    var currentStop = Math.Min(currentStart + batchSize - 1, listLength - 1);
+                    tasks.Add(batch.ListRangeAsync(key, currentStart, currentStop));
+                }
+
+                batch.Execute();
+                var results = await Task.WhenAll(tasks);
+                foreach (var batchResult in results)
+                {
+                    result.AddRange(batchResult);
+                }
+
+                if (logger.IsDebugEnabled)
+                {
+                    var duration = DateTime.Now.Subtract(startTime);
+                    logger.Debug($"ListAllPipelinedAsync key={key} with batchSize={batchSize} took {duration.TotalSeconds.ToString("F2")} seconds for {result.Count} items");
+                }
+                hasError = false;
+                return result;
+            }
+            catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisCommandException || ex is RedisConnectionException || ex is RedisException)
+            {
+                hasError = true;
+                logger.Error($"ListAllPipelinedAsync key={key} with batchSize={batchSize} failed", ex);
                 throw;
             }
         }

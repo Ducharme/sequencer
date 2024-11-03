@@ -4,7 +4,6 @@ using log4net.Config;
 using System.Diagnostics;
 
 using RedisAccessLayer;
-using DatabaseAccessLayer;
 
 namespace CommonServiceLib
 {
@@ -26,6 +25,15 @@ namespace CommonServiceLib
             var file = Path.Combine(dir, "log4net.config");
             XmlConfigurator.Configure(new FileInfo(file));
             logger.Info("Application started");
+        }
+
+        public static void LogNumberOfThreads()
+        {
+            var cpuCount = new CpuInfo().GetCpuCount().ToString("F2");
+            var threadsCount = Process.GetCurrentProcess().Threads.Count;
+            ThreadPool.GetMinThreads(out int minWorkerThreads, out int minCompletionPortThreads);
+            ThreadPool.GetMaxThreads(out int maxWorkerThreads, out int maxCompletionPortThreads);
+            logger.Info($"Process has {cpuCount} processors, {threadsCount} threads, {minWorkerThreads}/{maxWorkerThreads} Min/Max worker threads, {minCompletionPortThreads}/{maxCompletionPortThreads} Min/Max IO Threads");
         }
 
         public static void AddServiceProvider(IServiceProvider sp)

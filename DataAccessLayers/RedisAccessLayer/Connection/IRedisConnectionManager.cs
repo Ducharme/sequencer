@@ -15,7 +15,10 @@ namespace RedisAccessLayer
         Task SubscribeAsync();
         
         Task<StreamEntry[]> StreamReadAsync(RedisKey key, RedisValue position);
+        Task<List<StreamEntry>> StreamReadAllAsync(RedisKey key, int batchSize = 1000);
         Task<RedisValue[]> ListRangeAsync(RedisKey key, long start = 0, long stop = -1);
+        Task<List<RedisValue>> ListAllAsync(RedisKey key, int batchSize = 1000);
+        Task<List<RedisValue>> ListAllPipelinedAsync(RedisKey key, int batchSize = 1000);
         Task<string> ListGetByIndexAsync(RedisKey key, long index);
         Task<bool> KeyDeleteAsync(RedisKey key);
         Task<string> ListRightPopLeftPushListSetByIndexInTransactionAsync(RedisKey source, RedisKey destination, long val);

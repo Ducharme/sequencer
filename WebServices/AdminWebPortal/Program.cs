@@ -1,4 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+//using System.Runtime;
+//using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Http.Timeouts;
+
 using log4net;
 
 using CommonTypes;
@@ -26,7 +30,30 @@ if (AwsEnvironmentDetector.IsRunningOnAWS() && AwsEnvironmentDetector.IsSpotInst
 {
     builder.Services.AddHostedService<AwsEc2TerminationHandler>();
 }
+//builder.Services.Configure<KestrelServerOptions>(options =>
+//{
+//    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(10);
+//    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(10);
+//});
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.AllowSynchronousIO = false;
+    options.Limits.MinRequestBodyDataRate = null;
+    options.Limits.MinResponseDataRate = null;
+    //options.Limits.MaxRequestBodySize = 100_000_000; // 100MB
+    //options.Limits.MaxRequestBufferSize = 100_000_000;
+});
+// For larger memory usage:
+//GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+builder.Services.AddRequestTimeouts(options => {
+    options.AddPolicy("LongOperationPolicy", new RequestTimeoutPolicy {
+        Timeout = TimeSpan.FromMinutes(10),
+        TimeoutStatusCode = 498
+    });
+});
+
 var app = builder.Build();
+app.UseRequestTimeouts();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -43,13 +70,13 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
 app.MapRazorPages();
-
+HealthEnpoints.MapGet(app);
+ThreadPool.SetMinThreads(20, 20);
+CommonServiceLib.Program.LogNumberOfThreads();
 
 var adm = app.Services.GetService<AS.IAdminManager>() ?? throw new NullReferenceException("IAdminManager implementation could not be resolved");
 
 app.MapGet("/", () => "Hello World!");
-
-HealthEnpoints.MapGet(app);
 
 app.MapGet("/index.htm", () => {
 var htmlContent = @"<!doctype html>
@@ -215,7 +242,7 @@ app.MapGet("/list/stats", async ([FromQuery] string name, [FromQuery] long start
         };
         return Results.Problem(problemDetails);
     }
-});
+}).WithRequestTimeout("LongOperationPolicy");
 
 app.MapGet("/list/perfs", async ([FromQuery] string name, [FromQuery] long start = 1, [FromQuery] long count = -1) => {
     logger.Info($"Called /list/perfs with name={name}, start={start}, count={count}");
@@ -249,7 +276,7 @@ app.MapGet("/list/perfs", async ([FromQuery] string name, [FromQuery] long start
         };
         return Results.Problem(problemDetails);
     }
-});
+}).WithRequestTimeout("LongOperationPolicy");
 
 app.MapDelete("/list/cache", () => {
     logger.Info($"Called DELETE /list/cache");
@@ -314,6 +341,6 @@ app.MapGet("/dump", async ([FromQuery] string name) => {
     html += "</table></body></html>";
 
     return Results.Content(html, "text/html", System.Text.Encoding.UTF8, 200);
-});
+}).WithRequestTimeout("LongOperationPolicy");
 
 app.Run();

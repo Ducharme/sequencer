@@ -13,6 +13,8 @@ namespace RedisAccessLayer
         private List<MyMessage>? pendingListCache = null;
         private List<MyMessage>? processingListCache = null;
         private List<MyMessage>? sequencedListCache = null;
+        private List<MyStreamMessage>? sequencedStreamCache = null;
+        private List<MyStreamMessage>? processedStreamCache = null;
         private readonly object cachelLock = new();
 
 
@@ -85,13 +87,16 @@ namespace RedisAccessLayer
                 pendingListCache = null;
                 processingListCache = null;
                 sequencedListCache = null;
+                sequencedStreamCache = null;
+                processedStreamCache = null;
             }
         }
 
         private async Task<List<MyMessage>> GetFullList(string listKey)
         {
             logger.Info($"Getting full list {listKey}");
-            var listValues = await rcm.ListRangeAsync(listKey);
+            var listValues = await rcm.ListAllPipelinedAsync(listKey);
+            //var listValues = await rcm.ListAllAsync(listKey);
             #pragma warning disable CS8619
             return listValues.Select(v => v.ToString().FromShortString()).Where(mm => mm != null).ToList();
             #pragma warning restore CS8619
@@ -99,33 +104,44 @@ namespace RedisAccessLayer
 
         public async Task<List<MyStreamMessage>> GetFullSequencedStream()
         {
-            return await GetAllMessagesFromStream(sequencedStreamKey);
+            lock (cachelLock)
+            {
+                if (sequencedStreamCache != null)
+                {
+                    return sequencedStreamCache;
+                }
+            }
+            
+            var lst = await GetAllMessagesFromStream(sequencedStreamKey);
+            lock (cachelLock)
+            {
+                sequencedStreamCache = lst;
+            }
+            return lst;
         }
 
         public async Task<List<MyStreamMessage>> GetFullProcessedStream()
         {
-            return await GetAllMessagesFromStream(processedStreamKey);
+            lock (cachelLock)
+            {
+                if (processedStreamCache != null)
+                {
+                    return processedStreamCache;
+                }
+            }
+            
+            var lst = await GetAllMessagesFromStream(processedStreamKey);
+            lock (cachelLock)
+            {
+                processedStreamCache = lst;
+            }
+            return lst;
         }
 
         private async Task<List<MyStreamMessage>> GetAllMessagesFromStream(string streamKey)
         {
-            var lst = new List<MyStreamMessage>();
-            var lastEntryId = StreamPosition.Beginning;
-
-            var entries = await rcm.StreamReadAsync(streamKey, lastEntryId);
-            while (entries != null && entries.Length > 0)
-            {
-                foreach (StreamEntry entry in entries)
-                {
-                    var entryId = entry.Id.ToString();
-                    var mm = entry.ToMyMessage();
-                    lst.Add(mm);
-
-                    lastEntryId = entry.Id;
-                }
-                entries = await rcm.StreamReadAsync(streamKey, lastEntryId);
-            }
-            return lst;
+            var entries = await rcm.StreamReadAllAsync(streamKey);
+            return entries.Select(se => se.ToMyMessage()).ToList();
         }
 
         public async Task PrintLastValuesFromProcessedStream()

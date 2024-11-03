@@ -53,7 +53,7 @@ run_test() {
     echo "ALL -- Stats from $start to $end"
     curl -s -X GET "http://$awp_host:$awp_port/list/stats?name=$GROUP_NAME&start=$start&count=$end"
     echo ""
-    echo "ALL -- perfs from $start to $end"
+    echo "ALL -- Perfs from $start to $end"
     curl -s -X GET "http://$awp_host:$awp_port/list/perfs?name=$GROUP_NAME&start=$start&count=$end"
     echo ""
 }
