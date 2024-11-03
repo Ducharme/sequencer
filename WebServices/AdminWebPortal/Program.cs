@@ -71,7 +71,7 @@ app.UseRouting();
 app.UseAuthorization();
 app.MapRazorPages();
 HealthEnpoints.MapGet(app);
-ThreadPool.SetMinThreads(20, 20);
+//ThreadPool.SetMinThreads(20, 20);
 CommonServiceLib.Program.LogNumberOfThreads();
 
 var adm = app.Services.GetService<AS.IAdminManager>() ?? throw new NullReferenceException("IAdminManager implementation could not be resolved");

@@ -1,6 +1,7 @@
 using CommonTypes;
 using log4net;
 using Newtonsoft.Json;
+using NRedisStack;
 using StackExchange.Redis;
 
 namespace RedisAccessLayer
@@ -198,7 +199,7 @@ end";
             {
                 if (logger.IsDebugEnabled)
                 {
-                    logger.Debug($"StreamReadAsync {key} with position={position}");
+                    logger.Debug($"StreamReadAsync key={key} with position={position}");
                 }
                 var response = await Database.StreamReadAsync(key, position, count: null, DefaultCommandFlags) ?? [];
                 hasError = false;
@@ -207,7 +208,7 @@ end";
             catch (Exception ex) when (ex is RedisServerException || ex is RedisTimeoutException || ex is RedisCommandException || ex is RedisConnectionException || ex is RedisException)
             {
                 hasError = true;
-                logger.Error($"StreamReadAsync {key} with position={position} failed", ex);
+                logger.Error($"StreamReadAsync key={key} with position={position} failed", ex);
                 throw;
             }
         }
@@ -220,14 +221,15 @@ end";
             
             if (logger.IsDebugEnabled)
             {
-                logger.Debug($"StreamReadAllAsync {key} with batchSize={batchSize}");
+                logger.Debug($"StreamReadAllAsync key={key} with batchSize={batchSize}");
             }
 
+            var startTime = DateTime.Now;
             while (true)
             {
                 try
                 {
-                    var batch = await Database.StreamReadAsync(key: key, position: position, count: batchSize, CommandFlags.None);
+                    var batch = await Database.StreamReadAsync(key: key, position: position, count: batchSize, DefaultCommandFlags);
                     if (batch == null || batch.Length == 0)
                     {
                         break;
@@ -245,18 +247,23 @@ end";
                     if (batchSize <= minBatchSize)
                     {
                         hasError = true;
-                        logger.Error($"StreamReadAllAsync {key} timeout at position {position}, batch size reached minimum of {minBatchSize}, throwing", ex);
+                        logger.Error($"StreamReadAllAsync key={key} timeout at position {position}, batch size reached minimum of {minBatchSize}, throwing", ex);
                         throw;
                     }
 
                     // Reduce batch size and retry
                     var newBatchSize = Math.Max(minBatchSize, batchSize / 2);
-                    logger.Error($"StreamReadAllAsync {key} timeout at position {position}, batch size {batchSize} reducing to {newBatchSize}, retrying", ex);
+                    logger.Error($"StreamReadAllAsync key={key} timeout at position {position}, batch size {batchSize} reducing to {newBatchSize}, retrying", ex);
                     batchSize = newBatchSize;
                     continue;
                 }
             }
 
+            if (logger.IsDebugEnabled)
+            {
+                var duration = DateTime.Now.Subtract(startTime);
+                logger.Debug($"StreamReadAllAsync key={key} with batchSize={batchSize} took {duration.TotalSeconds.ToString("F2")} seconds for {allEntries.Count} entries");
+            }
             hasError = false;
             return allEntries;
         }
@@ -317,7 +324,7 @@ end";
                 for (long currentStart = 0; currentStart < listLength; currentStart += batchSize)
                 {
                     var currentStop = Math.Min(currentStart + batchSize - 1, listLength - 1);
-                    var batch = await Database.ListRangeAsync(key: key, start: currentStart, stop: currentStop, flags: DefaultCommandFlags) ?? [];
+                    var batch = await Database.ListRangeAsync(key, currentStart, currentStop, DefaultCommandFlags) ?? [];
                     result.AddRange(batch);
                     if (batch.Length < batchSize)
                     {
@@ -362,7 +369,7 @@ end";
                 for (long currentStart = 0; currentStart < listLength; currentStart += batchSize)
                 {
                     var currentStop = Math.Min(currentStart + batchSize - 1, listLength - 1);
-                    tasks.Add(batch.ListRangeAsync(key, currentStart, currentStop));
+                    tasks.Add(batch.ListRangeAsync(key, currentStart, currentStop, DefaultCommandFlags));
                 }
 
                 batch.Execute();
