@@ -44,20 +44,8 @@ sudo dotnet workload update
 
 https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
 
-## jq
+## zip, unzip, jq, gdb, dsniff
 
 ```
-sudo apt-get install -y jq
-```
-
-## gdb
-
-```
-sudo apt install -y gdb
-```
-
-## tcpkill
-
-```
-sudo apt-get install -y dsniff
+sudo apt-get install -y zip, unzip, jq, gdb, dsniff
 ```
