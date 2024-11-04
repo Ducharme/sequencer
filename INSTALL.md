@@ -1,24 +1,28 @@
 
 # Locally
 
+## Update package lists
+
+```
+sudo apt-get update
+```
+
 ## Database client
 
 ```
-sudo apt install postgresql-client-common
-sudo apt install -y postgresql-client
+sudo apt-get install postgresql-client-common
+sudo apt-get install -y postgresql-client
 ```
 
 ## Redis client
 
 ```
-sudo apt install -y redis-tools
+sudo apt-get install -y redis-tools
 ```
 
 ## Dotnet Core
 
-```
-sudo apt update
-```
+
 Required for development
 ```
 sudo apt-get install -y dotnet-sdk-8.0
