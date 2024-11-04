@@ -47,17 +47,17 @@ https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
 ## jq
 
 ```
-sudo apt-get install jq
+sudo apt-get install -y jq
 ```
 
 ## gdb
 
 ```
-sudo apt install gdb
+sudo apt install -y gdb
 ```
 
 ## tcpkill
 
 ```
-sudo apt-get install dsniff
+sudo apt-get install -y dsniff
 ```
