@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: local-postgres
+spec:
+  selector:
+    app: local-postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: local-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: local-postgres
+  template:
+    metadata:
+      labels:
+        app: local-postgres
+    spec:
+      containers:
+      - name: local-postgres
+        image: postgres:16.4-bookworm
+        ports:
+        - containerPort: 5432
+        envFrom:
+        - secretRef:
+            name: postgres-secrets
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+          initialDelaySeconds: 5
+          periodSeconds: 5

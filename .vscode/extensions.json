@@ -1,0 +1,15 @@
+{
+    "recommendations": [
+        "ms-dotnettools.vscode-dotnet-runtime",
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.vscodeintellicode-csharp",
+        "jmrog.vscode-nuget-package-manager",
+        "formulahendry.dotnet-test-explorer",
+        "ms-azuretools.vscode-docker",
+        "Postman.postman-for-vscode"
+    ],
+    "unwantedRecommendations": [
+        "ms-vscode.notepadplusplus-keybindings"
+    ]
+}

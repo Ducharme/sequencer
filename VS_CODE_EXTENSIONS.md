@@ -1,3 +1,8 @@
+# CS Code Extensions
+
+Recommended in [.vscode/extensions.json](.vscode/extensions.json)
+
+```
 Name: .NET Install Tool
 Id: ms-dotnettools.vscode-dotnet-runtime
 Description: This extension installs and manages different versions of the .NET SDK and Runtime.
@@ -53,3 +58,4 @@ Description: Streamline API development and testing with the power of Postman, d
 Version: 1.3.0
 Publisher: Postman
 VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=Postman.postman-for-vscode
+```

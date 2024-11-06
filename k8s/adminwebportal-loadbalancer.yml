@@ -1,0 +1,26 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: metallb-ip-address-pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 172.18.255.200-172.18.255.250
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: metallb-l2advertisement
+  namespace: metallb-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adminwebportal-lb
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: adminwebportal
