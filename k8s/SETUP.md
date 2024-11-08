@@ -28,7 +28,7 @@ cp ../sequencer-cdk/.datadog .tmp/
 Deploy redis
 ```
 kubectl apply -f k8s/redis.yml
-POD_NAME=$(kubectl get po -o jsonpath='{.items[0].metadata.name}' | grep "local-redis")
+POD_NAME=$(kubectl get po -o name | grep local-redis | cut -d'/' -f2)
 kubectl exec -it $POD_NAME -- redis-cli
 PING
 # Should receive PONG as output
@@ -49,6 +49,13 @@ kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/confi
 kubectl apply -f k8s/adminwebportal-loadbalancer.yml
 AWP_IP=$(kubectl get svc adminwebportal-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 kubectl apply -f k8s/adminwebportal-loadbalancer.yml
+```
+
+Import local images to the cluster
+```
+kind load docker-image adminwebportal:latest --name local-sequencer
+kind load docker-image claudeducharme/adminwebportal:0.0.38-aspnet8.0.8-bookworm-slim-datadog3.3.1 --name local-sequencer
+kubectl rollout restart deployment adminwebportal
 ```
 
 Restart kind cluster

@@ -9,10 +9,15 @@ ADMIN_WAIT_TIME_SEC=5
 SEQUENCER_WAIT_TIME_SEC=5
 PROCESSOR_WAIT_TIME_SEC=5
 
-NB_MESSAGES=10
+NB_MESSAGES=1000
 CREATION_DELAY_MS=0
 PROCESSING_DELAY_MS=0
 
+kubectl delete -f .tmp/k8s/processorwebservice-deployment.yml
+kubectl delete -f .tmp/k8s/sequencerwebservice-deployment.yml
+kubectl delete -f .tmp/k8s/adminwebportal-deployment.yml
+kubectl delete -f k8s/redis.yml
+kubectl apply -f k8s/redis.yml
 
 ADMIN_CONTAINER_HOST=$(kubectl get service adminwebportal-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 ADMIN_CONTAINER_PORT=80

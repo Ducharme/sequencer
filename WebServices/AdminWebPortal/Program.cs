@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-//using System.Runtime;
-//using Microsoft.AspNetCore.Server.Kestrel.Core;
+using System.Runtime;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Http.Timeouts;
 
 using log4net;
@@ -14,6 +14,54 @@ CommonServiceLib.Program.AssignEvents();
 ILog logger = LogManager.GetLogger(typeof(Program));
 CommonServiceLib.Program.ConfigureLogging();
 
+// Large Object Heap Compaction Mode
+// https://learn.microsoft.com/en-us/dotnet/api/system.runtime.gclargeobjectheapcompactionmode?view=net-8.0
+var gcLohCompactionMode = Environment.GetEnvironmentVariable("DOTNET_GC_LOH_COMPACTION_MODE");
+if (!string.IsNullOrEmpty(gcLohCompactionMode))
+{
+    var values = Enum.GetValues<GCLargeObjectHeapCompactionMode>();
+    var keys = values.Select(name => name.ToString());
+    var ints = keys.Select(key => (int)Enum.Parse<GCLargeObjectHeapCompactionMode>(key));
+    if (int.TryParse(gcLohCompactionMode, out int val) && val >= ints.Min() && val <= ints.Max())
+    {
+        GCSettings.LargeObjectHeapCompactionMode = (GCLargeObjectHeapCompactionMode)val;
+        logger.Debug($"GCSettings.LargeObjectHeapCompactionMode set to {val}");
+    }
+    else if (Enum.TryParse<GCLargeObjectHeapCompactionMode>(gcLohCompactionMode, out GCLargeObjectHeapCompactionMode parsed))
+    {
+        GCSettings.LargeObjectHeapCompactionMode = parsed;
+        logger.Debug($"GCSettings.LargeObjectHeapCompactionMode set to {parsed}");
+    }
+    else
+    {
+        logger.Warn($"Value '{gcLohCompactionMode}' for GCSettings.LargeObjectHeapCompactionMode was not recognized thus not set");
+    }
+}
+
+// Adjusts the time that the garbage collector intrudes in your application
+// https://learn.microsoft.com/en-us/dotnet/api/system.runtime.gclatencymode?view=net-8.0
+var gcLatencyMode = Environment.GetEnvironmentVariable("DOTNET_GC_LATENCY_MODE");
+if (!string.IsNullOrEmpty(gcLatencyMode))
+{
+    var values = Enum.GetValues<GCLatencyMode>();
+    var keys = values.Select(name => name.ToString());
+    var ints = keys.Select(key => (int)Enum.Parse<GCLatencyMode>(key));
+    if (int.TryParse(gcLatencyMode, out int val) && val >= ints.Min() && val <= ints.Max())
+    {
+        GCSettings.LatencyMode = (GCLatencyMode)val;
+        logger.Debug($"GCSettings.LatencyMode set to {val}");
+    }
+    else if (Enum.TryParse<GCLatencyMode>(gcLatencyMode, out GCLatencyMode parsed))
+    {
+        GCSettings.LatencyMode = parsed;
+        logger.Debug($"GCSettings.LatencyMode set to {parsed}");
+    }
+    else
+    {
+        logger.Warn($"Value '{gcLatencyMode}' for GCSettings.LatencyMode was not recognized thus not set");
+    }
+}
+
 var builder = WebApplication.CreateBuilder(args ?? []);
 //builder.Logging.AddProvider(new Log4NetProvider(logger));
 var serviceProvider = AS.Program.ConfigureServices(builder.Services);
@@ -22,6 +70,7 @@ CommonServiceLib.Program.AddServiceProvider(serviceProvider);
 builder.Services.AddRazorPages();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
 builder.Services.AddSingleton<RedisCachedHealthCheck>();
 builder.Services.AddSingleton<RedisDetailedHealthCheck>();
 builder.Services.AddSingleton<RedisPingHealthCheck>();
@@ -30,6 +79,9 @@ if (AwsEnvironmentDetector.IsRunningOnAWS() && AwsEnvironmentDetector.IsSpotInst
 {
     builder.Services.AddHostedService<AwsEc2TerminationHandler>();
 }
+var kestrelAllowSyncIO = Environment.GetEnvironmentVariable("KESTREL_ALLOW_SYNC_IO");
+var kestrelMaxRequestBodySizeMB = Environment.GetEnvironmentVariable("KESTREL_MAX_REQUEST_BODY_SIZE_MB");
+var kestrelMaxRequestBufferSizeMB = Environment.GetEnvironmentVariable("KESTREL_MAX_REQUEST_BUFFER_SIZE_MB");
 //builder.Services.Configure<KestrelServerOptions>(options =>
 //{
 //    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(10);
@@ -37,14 +89,85 @@ if (AwsEnvironmentDetector.IsRunningOnAWS() && AwsEnvironmentDetector.IsSpotInst
 //});
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.AllowSynchronousIO = false;
     options.Limits.MinRequestBodyDataRate = null;
     options.Limits.MinResponseDataRate = null;
-    //options.Limits.MaxRequestBodySize = 100_000_000; // 100MB
-    //options.Limits.MaxRequestBufferSize = 100_000_000;
+    if (!string.IsNullOrEmpty(kestrelAllowSyncIO))
+    {
+        if (bool.TryParse(kestrelAllowSyncIO, out bool val))
+        {
+            options.AllowSynchronousIO = val;
+            logger.Debug($"Kestrel AllowSynchronousIO set to {val}");
+        }
+        else
+        {
+            logger.Warn($"Value '{val}' for Kestrel AllowSynchronousIO was not recognized thus not set");
+        }
+    }
+    if (!string.IsNullOrEmpty(kestrelMaxRequestBodySizeMB))
+    {
+        if (long.TryParse(kestrelMaxRequestBodySizeMB, out long val) && val > 0)
+        {
+            var num = val * 1024 * 1024; // MB to bytes
+            options.Limits.MaxRequestBodySize = num;
+            logger.Debug($"Kestrel MaxRequestBodySize set to {num}");
+        }
+        else
+        {
+            logger.Warn($"Value '{val}' for Kestrel MaxRequestBodySize was not recognized thus not set");
+        }
+    }
+    if (!string.IsNullOrEmpty(kestrelMaxRequestBufferSizeMB))
+    {
+        if (long.TryParse(kestrelMaxRequestBufferSizeMB, out long val) && val > 0)
+        {
+            var num = val * 1024 * 1024; // MB to bytes
+            options.Limits.MaxRequestBufferSize = num;
+            logger.Debug($"Kestrel MaxRequestBufferSize set to {num}");
+        }
+        else
+        {
+            logger.Warn($"Value '{val}' for Kestrel MaxRequestBufferSize was not recognized thus not set");
+        }
+    }
 });
-// For larger memory usage:
-//GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+// Configure middleware memory limits
+var maxRequestBodySizeMB = Environment.GetEnvironmentVariable("IIS_MAX_REQUEST_SIZE_MB");
+if (!string.IsNullOrEmpty(maxRequestBodySizeMB))
+{
+    if(int.TryParse(maxRequestBodySizeMB, out int val) && val > 0)
+    {
+        var num = val * 1024 * 1024; // MB to bytes
+        builder.Services.Configure<IISServerOptions>(options =>
+        {
+            options.MaxRequestBodySize = num;
+        });
+        logger.Debug($"IIS Server MaxRequestBodySize set to {num}");
+    }
+    else
+    {
+        logger.Warn($"Value '{val}' for IIS Server MaxRequestBodySize was not recognized thus not set");
+    }
+}
+// Configure JSON serializer memory limits
+var jsonBufferSizeKB = Environment.GetEnvironmentVariable("JSON_BUFFER_SIZE_KB");
+if (!string.IsNullOrEmpty(jsonBufferSizeKB))
+{
+    if(int.TryParse(jsonBufferSizeKB, out int val) && val > 0)
+    {
+        var num = val * 1024; // KB to bytes
+        builder.Services.Configure<JsonOptions>(options =>
+        {
+            options.JsonSerializerOptions.DefaultBufferSize = num;
+        });
+        logger.Debug($"JsonSerializer DefaultBufferSize set to {num}");
+    }
+    else
+    {
+        logger.Warn($"Value '{val}' for JsonSerializer DefaultBufferSize was not recognized thus not set");
+    }
+}
+
+// Timeouts
 builder.Services.AddRequestTimeouts(options => {
     options.AddPolicy("LongOperationPolicy", new RequestTimeoutPolicy {
         Timeout = TimeSpan.FromMinutes(10),
